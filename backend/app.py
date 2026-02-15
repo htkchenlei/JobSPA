@@ -7,4 +7,4 @@ print(f"当前工作目录: {os.getcwd()}")
 print(f"数据库连接字符串: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=15667)

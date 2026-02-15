@@ -8,17 +8,19 @@ services:
     ports:
       - "15667:15667"
     volumes:
-      # 将NAS上的data目录挂载到容器的data目录，用于持久化SQLite文件
-      - /volume1/docker/JobSPA/data:/app/data
+      # 使用相对路径挂载，确保路径正确
+      - ./data:/app/data
     environment:
       - FLASK_ENV=production
-      - DATABASE_URL=sqlite:///data/projectmanagement.db
+      - DATABASE_URL=sqlite:///data/projectmanagement.db  # 使用相对路径
+    # 确保容器以root用户运行，避免权限问题
+    user: "root"
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
-      - "8080:80"
+      - "15668:80"
     depends_on:
       - backend
