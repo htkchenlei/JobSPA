@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ .
 
 # 创建数据目录（用于存储SQLite数据库文件）
-RUN mkdir -p data
+RUN mkdir -p data && chmod 777 data
 
 # 暴露端口
 EXPOSE 15667
