@@ -26,52 +26,111 @@ STAGE_MAP = {
 # 获取项目列表
 @bp.route('/', methods=['GET'])
 def get_projects():
-    projects = Project.query.filter_by(is_deleted=False).all()
-    result = []
-    for project in projects:
-        stage_int = int(project.stage)
-        stage_text = STAGE_MAP.get(stage_int, '未知阶段')
-        # 只显示"|"前面的内容
-        if '|' in stage_text:
-            stage_text = stage_text.split('|')[0]
-        print(stage_text)
+    # 调试信息
+    print("开始获取项目列表...")
+    
+    # 使用与app/__init__.py文件中相同的方式创建SQLAlchemy引擎
+    from sqlalchemy import create_engine, text
+    from app import app
+    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+    with engine.connect() as conn:
+        # 测试查询项目表中的记录数
+        count_result = conn.execute(text("SELECT count(*) FROM projects"))
+        count = count_result.scalar()
+        print(f"\n项目表中的记录数: {count}")
         
-        # 获取负责人用户名
-        owner_username = None
-        if project.owner:
-            owner_user = User.query.filter_by(id=project.owner).first()
-            if owner_user:
-                owner_username = owner_user.username
+        # 测试查询项目表中的记录数，使用不同的方式
+        count_result2 = conn.execute(text("SELECT count(*) FROM projects WHERE 1=1"))
+        count2 = count_result2.scalar()
+        print(f"项目表中的记录数 (WHERE 1=1): {count2}")
         
-        # 获取该项目的最新更新信息
-        latest_update = LatestUpdate.query.filter_by(project_id=project.id).first()
-        update_content = latest_update.update_content if latest_update else '暂无更新'
-        update_date = latest_update.update_date.strftime('%Y-%m-%d') if (latest_update and latest_update.update_date) else '暂无更新'
-        update_time = latest_update.update_time.strftime('%H:%M:%S') if (latest_update and latest_update.update_time) else '暂无更新'
-        updated_by = latest_update.updated_by if latest_update else None
+        # 查询项目数据，只查询未删除的项目
+        project_result = conn.execute(text("SELECT id, name, client_name, scale, start_date, location, sales_person, stage, is_deleted, owner, province, city, district FROM projects WHERE is_deleted = 0"))
+        projects = project_result.fetchall()
+        print(f"\n使用引擎查询到 {len(projects)} 个项目")
         
-        result.append({
-            'id': project.id,
-            'name': project.name,
-            'client_name': project.client_name,
-            'scale': project.scale,
-            'start_date': project.start_date.strftime('%Y-%m-%d') if project.start_date else None,
-            'location': project.location,
-            'sales_person': project.sales_person,
-            'stage': stage_int,
-            'stage_text': stage_text,
-            'owner': project.owner,
-            'owner_username': owner_username,
-            'province': project.province,
-            'city': project.city,
-            'district': project.district,
-            'latest_update': {
-                'content': update_content,
-                'date': update_date,
-                'time': update_time,
-                'by': updated_by
-            }
-        })
+        # 打印前5个项目
+        print("\n前5个项目:")
+        for i, project in enumerate(projects[:5]):
+            print(f"项目 {project[1]} (ID: {project[0]})")
+        
+        result = []
+        for project in projects:
+            project_id = project[0]
+            project_name = project[1]
+            client_name = project[2]
+            scale = project[3]
+            start_date = project[4]
+            location = project[5]
+            sales_person = project[6]
+            stage_int = int(project[7])
+            is_deleted = project[8]
+            owner = project[9]
+            province = project[10]
+            city = project[11]
+            district = project[12]
+            
+            stage_text = STAGE_MAP.get(stage_int, '未知阶段')
+            # 只显示"|"前面的内容
+            if '|' in stage_text:
+                stage_text = stage_text.split('|')[0]
+            print(stage_text)
+            
+            # 获取负责人用户名
+            owner_username = None
+            if owner:
+                user_result = conn.execute(text(f"SELECT username FROM users WHERE id = {owner}"))
+                user = user_result.fetchone()
+                if user:
+                    owner_username = user[0]
+            
+            # 获取该项目的最新更新信息
+            latest_update_result = conn.execute(text(f"SELECT update_content, update_date, update_time, updated_by FROM latest_update WHERE project_id = {project_id}"))
+            latest_update = latest_update_result.fetchone()
+            update_content = latest_update[0] if latest_update else '暂无更新'
+            # 检查update_date的类型
+            if latest_update and latest_update[1]:
+                if isinstance(latest_update[1], str):
+                    update_date = latest_update[1]
+                else:
+                    update_date = latest_update[1].strftime('%Y-%m-%d')
+            else:
+                update_date = '暂无更新'
+            update_time = latest_update[2] if (latest_update and latest_update[2]) else '暂无更新'
+            updated_by = latest_update[3] if latest_update else None
+            
+            # 检查start_date的类型
+            if start_date:
+                if isinstance(start_date, str):
+                    formatted_start_date = start_date
+                else:
+                    formatted_start_date = start_date.strftime('%Y-%m-%d')
+            else:
+                formatted_start_date = None
+            
+            result.append({
+                'id': project_id,
+                'name': project_name,
+                'client_name': client_name,
+                'scale': scale,
+                'start_date': formatted_start_date,
+                'location': location,
+                'sales_person': sales_person,
+                'stage': stage_int,
+                'stage_text': stage_text,
+                'owner': owner,
+                'owner_username': owner_username,
+                'province': province,
+                'city': city,
+                'district': district,
+                'latest_update': {
+                    'content': update_content,
+                    'date': update_date,
+                    'time': update_time,
+                    'by': updated_by
+                }
+            })
+    
     return jsonify(result), 200
 
 # 获取单个项目

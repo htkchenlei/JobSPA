@@ -48,24 +48,46 @@ def get_todos():
     if not user_id:
         return jsonify({'error': '未授权访问'}), 401
     
-    query = Todo.query.filter_by(created_by=user_id)
+    # 使用SQLAlchemy引擎直接执行SQL语句
+    from sqlalchemy import create_engine, text
+    from app import app
+    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
     
-    if is_finished is not None:
-        query = query.filter_by(is_finished=is_finished)
+    with engine.connect() as conn:
+        # 构建查询语句
+        if is_finished is not None:
+            query = text(f"SELECT id, item, is_finished, create_at, finish_at FROM todos WHERE created_by = {user_id} AND is_finished = {1 if is_finished else 0}")
+        else:
+            query = text(f"SELECT id, item, is_finished, create_at, finish_at FROM todos WHERE created_by = {user_id}")
+        
+        result = conn.execute(query)
+        todos = result.fetchall()
+        
+        response = []
+        for todo in todos:
+            # 检查日期类型
+            if isinstance(todo[3], str):
+                create_at = todo[3]
+            else:
+                create_at = todo[3].strftime('%Y-%m-%d %H:%M:%S')
+            
+            if todo[4]:
+                if isinstance(todo[4], str):
+                    finish_at = todo[4]
+                else:
+                    finish_at = todo[4].strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                finish_at = None
+            
+            response.append({
+                'id': todo[0],
+                'item': todo[1],
+                'is_finished': bool(todo[2]),
+                'create_at': create_at,
+                'finish_at': finish_at
+            })
     
-    todos = query.all()
-    
-    result = []
-    for todo in todos:
-        result.append({
-            'id': todo.id,
-            'item': todo.item,
-            'is_finished': todo.is_finished,
-            'create_at': todo.create_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'finish_at': todo.finish_at.strftime('%Y-%m-%d %H:%M:%S') if todo.finish_at else None
-        })
-    
-    return jsonify(result), 200
+    return jsonify(response), 200
 
 # 获取单个待办事项
 @bp.route('/<int:id>', methods=['GET'])

@@ -81,6 +81,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/users/</div>
           <div class="api-description">获取所有用户列表</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>[{"id": 1, "username": "用户名"}]</pre>
@@ -97,7 +101,11 @@
         <div class="api-details">
           <div class="api-method get">GET</div>
           <div class="api-url">/api/projects/</div>
-          <div class="api-description">获取所有项目列表</div>
+          <div class="api-description">获取所有未删除的项目列表</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>[{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}]</pre>
@@ -111,6 +119,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/projects/{id}</div>
           <div class="api-description">获取单个项目的详细信息</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}</pre>
@@ -125,6 +137,8 @@
           <div class="api-url">/api/projects/</div>
           <div class="api-description">创建新项目</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"name": "项目名称", "client_name": "客户名称", "stage": 1}</pre>
           </div>
@@ -142,6 +156,8 @@
           <div class="api-url">/api/projects/{id}</div>
           <div class="api-description">更新项目信息</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"name": "项目名称", "client_name": "客户名称", "stage": 2}</pre>
           </div>
@@ -159,6 +175,8 @@
           <div class="api-url">/api/projects/{id}/progress</div>
           <div class="api-description">更新项目进度信息</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"update_content": "进度内容", "stage": 3, "updated_by": "更新人"}</pre>
           </div>
@@ -175,6 +193,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/projects/{id}/progress</div>
           <div class="api-description">获取项目的进度历史记录</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>[{"id": 1, "update_content": "进度内容", "update_date": "2024-01-01", "update_time": "12:00:00", "updated_by": "更新人"}]</pre>
@@ -188,6 +210,10 @@
           <div class="api-method delete">DELETE</div>
           <div class="api-url">/api/projects/{id}</div>
           <div class="api-description">软删除项目</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"message": "项目删除成功"}</pre>
@@ -201,6 +227,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/projects/stages</div>
           <div class="api-description">获取所有项目阶段列表</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>[{"value": 1, "label": "立项中"}, {"value": 2, "label": "立项中"}]</pre>
@@ -215,6 +245,8 @@
           <div class="api-url">/api/projects/search</div>
           <div class="api-description">根据关键词搜索项目</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"keywords": "关键词", "start_date": "开始日期", "end_date": "结束日期"}</pre>
           </div>
@@ -235,6 +267,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/files/</div>
           <div class="api-description">获取用户的文件系统结构</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"id": "root", "name": "根目录", "type": "folder", "children": [{"id": "file1.txt", "name": "file1.txt", "type": "file", "size": "1KB"}]}</pre>
@@ -249,6 +285,8 @@
           <div class="api-url">/api/files/folders</div>
           <div class="api-description">创建新文件夹</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"name": "文件夹名称", "parentId": "父文件夹ID"}</pre>
           </div>
@@ -266,6 +304,8 @@
           <div class="api-url">/api/files/upload</div>
           <div class="api-description">上传文件到指定文件夹</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>FormData: {"files": [文件对象], "folderId": "文件夹ID"}</pre>
           </div>
@@ -282,6 +322,10 @@
           <div class="api-method delete">DELETE</div>
           <div class="api-url">/api/files/{path}</div>
           <div class="api-description">删除指定的文件或文件夹</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"message": "文件删除成功"}</pre>
@@ -295,6 +339,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/files/download/{path}</div>
           <div class="api-description">下载指定的文件</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应：</h4>
             <pre>文件内容（二进制）</pre>
@@ -313,6 +361,8 @@
           <div class="api-url">/api/todos/</div>
           <div class="api-description">获取用户的待办事项列表</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>查询参数：</h4>
             <pre>is_finished=true/false（可选）</pre>
           </div>
@@ -329,6 +379,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/todos/{id}</div>
           <div class="api-description">获取单个待办事项的详细信息</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"id": 1, "item": "待办事项内容", "is_finished": false, "create_at": "2024-01-01 12:00:00", "finish_at": null}</pre>
@@ -343,6 +397,8 @@
           <div class="api-url">/api/todos/</div>
           <div class="api-description">创建新的待办事项</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"item": "待办事项内容"}</pre>
           </div>
@@ -360,6 +416,8 @@
           <div class="api-url">/api/todos/{id}</div>
           <div class="api-description">更新待办事项内容</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"item": "新的待办事项内容", "is_finished": true/false}</pre>
           </div>
@@ -376,6 +434,10 @@
           <div class="api-method post">POST</div>
           <div class="api-url">/api/todos/{id}/complete</div>
           <div class="api-description">将待办事项标记为已完成</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"id": 1, "is_finished": true, "finish_at": "2024-01-01 13:00:00", "message": "待办事项标记为完成"}</pre>
@@ -389,6 +451,10 @@
           <div class="api-method post">POST</div>
           <div class="api-url">/api/todos/{id}/uncomplete</div>
           <div class="api-description">将待办事项标记为未完成</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"id": 1, "is_finished": false, "finish_at": null, "message": "待办事项标记为未完成"}</pre>
@@ -402,6 +468,10 @@
           <div class="api-method delete">DELETE</div>
           <div class="api-url">/api/todos/{id}</div>
           <div class="api-description">删除待办事项</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"message": "待办事项删除成功"}</pre>
@@ -419,6 +489,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/work-log/</div>
           <div class="api-description">获取所有工作日志</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>[{"id": 1, "today_activities": "活动记录", "user": 1, "work_log_by_ai": "AI生成的工作日志", "log_date": "2024-01-01", "log_time": "12:00:00", "created_by_ai": "DeepSeek"}]</pre>
@@ -432,6 +506,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/work-log/user/{user_id}</div>
           <div class="api-description">获取指定用户的所有工作日志</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>[{"id": 1, "today_activities": "活动记录", "user": 1, "work_log_by_ai": "AI生成的工作日志", "log_date": "2024-01-01", "log_time": "12:00:00", "created_by_ai": "DeepSeek"}]</pre>
@@ -445,6 +523,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/work-log/date/{log_date}</div>
           <div class="api-description">获取指定日期的工作日志</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"id": 1, "today_activities": "活动记录", "user": 1, "work_log_by_ai": "AI生成的工作日志", "log_date": "2024-01-01", "log_time": "12:00:00", "created_by_ai": "DeepSeek"}</pre>
@@ -459,6 +541,8 @@
           <div class="api-url">/api/work-log/generate-activities</div>
           <div class="api-description">生成今日的活动记录</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"user_id": 1}</pre>
           </div>
@@ -476,6 +560,8 @@
           <div class="api-url">/api/work-log/save</div>
           <div class="api-description">保存工作日志</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"user_id": 1, "work_log_by_ai": "AI生成的工作日志"}</pre>
           </div>
@@ -492,6 +578,10 @@
           <div class="api-method get">GET</div>
           <div class="api-url">/api/work-log/today-activities</div>
           <div class="api-description">获取今日的活动记录</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>["活动1", "活动2", "活动3"]</pre>
@@ -510,6 +600,8 @@
           <div class="api-url">/api/ai/generate</div>
           <div class="api-description">调用大模型生成内容</div>
           <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
             <pre>{"model": "deepseek", "prompt": "提示词", "max_tokens": 500}</pre>
           </div>

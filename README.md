@@ -28,7 +28,7 @@ JobSPA 是一个基于 Vue 3 和 Flask 开发的全栈单页应用，旨在提�
 
 ### 后端
 - **框架**：Flask 2.0.1
-- **数据库**：MySQL (通过 PyMySQL 连接)
+- **数据库**：SQLite (内置，无需额外安装)
 - **ORM**：SQLAlchemy 1.4.32
 - **CORS**：Flask-CORS 3.0.10
 - **环境管理**：python-dotenv 0.19.2
@@ -40,7 +40,7 @@ JobSPA 是一个基于 Vue 3 和 Flask 开发的全栈单页应用，旨在提�
 
 - **前端**：Node.js 16+，npm 7+
 - **后端**：Python 3.8+，pip 20+
-- **数据库**：MySQL 5.7+
+- **数据库**：SQLite（内置，无需额外安装）
 
 ### 2. 安装依赖
 
@@ -58,8 +58,9 @@ pip install -r requirements.txt
 
 ### 3. 配置数据库
 
-1. 创建 MySQL 数据库（默认名称：`projectmanagement`）
+1. SQLite 数据库会自动创建在 `backend/instance/` 目录下
 2. 修改 `backend/.env` 文件中的数据库连接信息（如果需要）
+   - 默认配置：`DATABASE_URL=sqlite:///projectmanagement.db`
 
 ### 4. 启动服务
 

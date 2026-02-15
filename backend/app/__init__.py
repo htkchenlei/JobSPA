@@ -21,7 +21,32 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # 导入模型
-from .models.models import User, Project, ProjectProgress, LatestUpdate, Todo
+from .models.models import User, Project, ProjectProgress, LatestUpdate, Todo, WorkLog
+
+# 打印数据库文件路径
+import os
+from sqlalchemy import create_engine
+engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI']:
+    # 提取SQLite数据库文件路径
+    import re
+    match = re.search(r'sqlite:///(.*)', app.config['SQLALCHEMY_DATABASE_URI'])
+    if match:
+        db_path = match.group(1)
+        if db_path.startswith('./'):
+            db_path = os.path.join(os.getcwd(), db_path[2:])
+        print(f"SQLite数据库文件路径: {db_path}")
+        print(f"数据库文件是否存在: {os.path.exists(db_path)}")
+        print(f"数据库文件大小: {os.path.getsize(db_path) if os.path.exists(db_path) else '0'} bytes")
+        
+        # 测试数据库连接
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT count(*) FROM projects"))
+            print(f"\n项目表中的记录数: {result.scalar()}")
+            
+            result = conn.execute(text("SELECT count(*) FROM users"))
+            print(f"用户表中的记录数: {result.scalar()}")
 
 # 导入路由
 from .routes import project_routes
