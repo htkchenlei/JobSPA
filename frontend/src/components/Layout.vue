@@ -38,9 +38,9 @@
           <span class="menu-icon">📅</span>
           <span class="menu-text">工作日志</span>
         </router-link>
-        <router-link to="/api-documentation" class="menu-item">
-          <span class="menu-icon">📚</span>
-          <span class="menu-text">API文档</span>
+        <router-link to="/place-search" class="menu-item">
+          <span class="menu-icon">🗺️</span>
+          <span class="menu-text">地名查询</span>
         </router-link>
         <div class="menu-item user-profile" @click="changePassword">
           <span class="menu-icon">👤</span>
@@ -105,7 +105,7 @@ const currentRouteName = computed(() => {
       '/todos': '待办事项',
       '/file-management': '文件管理',
       '/work-log': '工作日志',
-      '/api-documentation': 'API文档',
+      '/place-search': '地名查询',
       '/settings': '个人设置'
     }
     return routeMap[route.path] || '仪表盘'
@@ -168,8 +168,8 @@ const logout = () => {
 }
 
 .logo-icon {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   margin-right: 8px;
 }
 

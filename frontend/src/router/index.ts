@@ -56,15 +56,16 @@ const router = createRouter({
           component: () => import('../views/Settings.vue')
         },
         {
-          path: 'api-documentation',
-          name: 'apiDocumentation',
-          component: () => import('../views/ApiDocumentation.vue')
-        },
-        {
           path: 'work-log',
           name: 'workLog',
           component: () => import('../views/WorkLog.vue')
-        }
+        },
+        {
+          path: 'place-search',
+          name: 'placeSearch',
+          component: () => import('../views/PlaceSearch.vue')
+        },
+
       ]
     }
   ]

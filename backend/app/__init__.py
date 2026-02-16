@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # 配置数据库连接
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql+pymysql://root:root@localhost:3306/projectmanagement')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///projectmanagement.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 初始化数据库
@@ -56,6 +56,8 @@ from .routes import todo_routes
 from .routes import file_routes
 from .routes import ai_routes
 from .routes import work_log_routes
+from .routes import place_routes
+from .routes import file_parse_routes
 
 # 注册路由
 app.register_blueprint(project_routes.bp)
@@ -65,6 +67,8 @@ app.register_blueprint(todo_routes.bp)
 app.register_blueprint(file_routes.bp)
 app.register_blueprint(ai_routes.bp)
 app.register_blueprint(work_log_routes.bp)
+app.register_blueprint(place_routes.place_bp)
+app.register_blueprint(file_parse_routes.file_parse_bp, url_prefix='/api')
 
 # 配置静态文件路径
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'dist')

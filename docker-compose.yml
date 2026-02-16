@@ -8,13 +8,18 @@ services:
     ports:
       - "15667:15667"
     volumes:
-      # 使用相对路径挂载，确保路径正确
-      - ./data:/app/data
+      # 使用NAS上的目录挂载，确保数据持久化
+      - /volume1/docker/JobSPA/data:/app/data
     environment:
       - FLASK_ENV=production
-      - DATABASE_URL=sqlite:///data/projectmanagement.db  # 使用相对路径
+      - DATABASE_URL=sqlite:////app/data/projectmanagement.db  # 使用绝对路径
     # 确保容器以root用户运行，避免权限问题
     user: "root"
+    # 添加初始化命令，确保数据目录存在且权限正确
+    command: >
+      sh -c "mkdir -p /app/data && chmod 777 /app/data && python app.py"
+    networks:
+      - jobspa-network
 
   frontend:
     build:
@@ -24,3 +29,9 @@ services:
       - "15668:80"
     depends_on:
       - backend
+    networks:
+      - jobspa-network
+
+networks:
+  jobspa-network:
+    driver: bridge

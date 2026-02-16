@@ -12,6 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制应用代码
 COPY backend/ .
 
+# 复制china_regions.json文件
+COPY china_regions.json .
+
 # 创建数据目录（用于存储SQLite数据库文件）
 RUN mkdir -p data && chmod 777 data
 
