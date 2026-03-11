@@ -49,9 +49,9 @@ const login = async () => {
     
     if (response.ok) {
       const data = await response.json()
-      // 存储token到localStorage
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // 存储token到sessionStorage，关闭浏览器后自动清除
+      sessionStorage.setItem('token', data.token)
+      sessionStorage.setItem('user', JSON.stringify(data.user))
       // 跳转到仪表板
       router.push('/dashboard')
     } else {

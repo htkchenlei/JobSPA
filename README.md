@@ -119,8 +119,9 @@ backend/
 │   ├── routes/          # API 路由
 │   │   ├── ai_routes.py           # AI相关API路由
 │   │   ├── auth_routes.py         # 认证相关API路由
-│   │   ├── file_routes.py         # 文件管理API路由
+│   │   ├── excel_process_routes.py # Excel处理API路由
 │   │   ├── file_parse_routes.py    # 文件解析API路由
+│   │   ├── file_routes.py         # 文件管理API路由
 │   │   ├── place_routes.py         # 地名查询API路由
 │   │   ├── project_routes.py      # 项目管理API路由
 │   │   ├── todo_routes.py         # 待办事项API路由
@@ -200,9 +201,13 @@ docker-compose up -d
 - 确认网络连接是否正常
 - 检查浏览器控制台是否有错误信息
 
+### 4. 登录后关闭浏览器再打开不需要重新登录
+- 系统使用 sessionStorage 存储token，关闭浏览器后会自动清除
+- 若仍出现此问题，请清除浏览器缓存后重试
+
 ## 注意事项
 
-- 系统默认使用 JWT 进行用户认证，token 存储在 localStorage 中
+- 系统使用 JWT 进行用户认证，token 存储在 sessionStorage 中，关闭浏览器后会自动清除
 - 文件管理功能会为每个用户创建独立的文件存储目录
 - SQLite数据库文件已添加到 `.gitignore`，不会被上传到版本控制系统
 - 生产环境部署时，建议修改 `SECRET_KEY` 为强随机值

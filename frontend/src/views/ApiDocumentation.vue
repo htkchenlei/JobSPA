@@ -108,7 +108,20 @@
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>[{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}]</pre>
+            <pre>[{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中", "owner": 1, "owner_username": "用户名", "latest_update": {"content": "最新更新", "date": "2024-01-01", "time": "12:00:00", "by": "更新人"}}]</pre>
+          </div>
+        </div>
+      </div>
+      
+      <div class="api-card">
+        <h3>测试路由</h3>
+        <div class="api-details">
+          <div class="api-method get">GET</div>
+          <div class="api-url">/api/projects/test</div>
+          <div class="api-description">测试项目API连接</div>
+          <div class="api-response">
+            <h4>响应示例：</h4>
+            <pre>{"message": "测试成功"}</pre>
           </div>
         </div>
       </div>
@@ -125,7 +138,7 @@
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}</pre>
+            <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中", "owner": 1, "province": "省份", "city": "城市", "district": "区县", "latest_update": {"content": "最新更新", "date": "2024-01-01", "time": "12:00:00", "by": "更新人"}}</pre>
           </div>
         </div>
       </div>
@@ -140,11 +153,11 @@
             <h4>请求头：</h4>
             <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
-            <pre>{"name": "项目名称", "client_name": "客户名称", "stage": 1}</pre>
+            <pre>{"name": "项目名称", "client_name": "客户名称", "scale": "规模", "start_date": "2024-01-01", "location": "地点", "sales_person": "销售人员", "stage": 1, "owner": "用户名", "province": "省份", "city": "城市", "district": "区县"}</pre>
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}</pre>
+            <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "scale": "规模", "start_date": "2024-01-01", "location": "地点", "sales_person": "销售人员", "stage": 1, "stage_text": "立项中", "owner": 1, "province": "省份", "city": "城市", "district": "区县"}</pre>
           </div>
         </div>
       </div>
@@ -159,11 +172,11 @@
             <h4>请求头：</h4>
             <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
-            <pre>{"name": "项目名称", "client_name": "客户名称", "stage": 2}</pre>
+            <pre>{"name": "项目名称", "client_name": "客户名称", "scale": "规模", "start_date": "2024-01-01", "location": "地点", "sales_person": "销售人员", "stage": 2, "owner": "用户名", "province": "省份", "city": "城市", "district": "区县"}</pre>
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 2, "stage_text": "立项中"}</pre>
+            <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "scale": "规模", "start_date": "2024-01-01", "location": "地点", "sales_person": "销售人员", "stage": 2, "stage_text": "立项中", "owner": 1, "province": "省份", "city": "城市", "district": "区县"}</pre>
           </div>
         </div>
       </div>
@@ -178,11 +191,11 @@
             <h4>请求头：</h4>
             <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
-            <pre>{"update_content": "进度内容", "stage": 3, "updated_by": "更新人"}</pre>
+            <pre>{"update_content": "进度内容", "stage": 3, "updated_by": "更新人", "is_important": 0}</pre>
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>{"id": 1, "stage": 3, "stage_text": "已立项", "message": "项目进度更新成功"}</pre>
+            <pre>{"id": 1, "stage": 3, "stage_text": "已立项", "progressId": 1, "message": "项目进度更新成功"}</pre>
           </div>
         </div>
       </div>
@@ -199,7 +212,7 @@
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>[{"id": 1, "update_content": "进度内容", "update_date": "2024-01-01", "update_time": "12:00:00", "updated_by": "更新人"}]</pre>
+            <pre>[{"id": 1, "update_content": "进度内容", "update_date": "2024-01-01", "update_time": "12:00:00", "updated_by": "更新人", "is_important": 0}]</pre>
           </div>
         </div>
       </div>
@@ -217,6 +230,23 @@
           <div class="api-response">
             <h4>响应示例：</h4>
             <pre>{"message": "项目删除成功"}</pre>
+          </div>
+        </div>
+      </div>
+      
+      <div class="api-card">
+        <h3>恢复项目</h3>
+        <div class="api-details">
+          <div class="api-method post">POST</div>
+          <div class="api-url">/api/projects/{id}/restore</div>
+          <div class="api-description">恢复已删除的项目（仅管理员）</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
+          <div class="api-response">
+            <h4>响应示例：</h4>
+            <pre>{"message": "项目恢复成功"}</pre>
           </div>
         </div>
       </div>
@@ -252,7 +282,24 @@
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>[{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}]</pre>
+            <pre>[{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中", "owner": 1, "province": "省份", "city": "城市", "district": "区县"}]</pre>
+          </div>
+        </div>
+      </div>
+      
+      <div class="api-card">
+        <h3>获取今天的项目更新</h3>
+        <div class="api-details">
+          <div class="api-method get">GET</div>
+          <div class="api-url">/api/projects/today-updates</div>
+          <div class="api-description">获取今天的项目更新记录</div>
+          <div class="api-request">
+            <h4>请求头：</h4>
+            <pre>Authorization: Bearer {token}</pre>
+          </div>
+          <div class="api-response">
+            <h4>响应示例：</h4>
+            <pre>[{"id": 1, "project_id": 1, "project_name": "项目名称", "update_content": "更新内容", "update_date": "2024-01-01", "update_time": "12:00:00", "updated_by": "更新人"}]</pre>
           </div>
         </div>
       </div>
@@ -512,7 +559,7 @@
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>[{"id": 1, "today_activities": "活动记录", "user": 1, "work_log_by_ai": "AI生成的工作日志", "log_date": "2024-01-01", "log_time": "12:00:00", "created_by_ai": "DeepSeek"}]</pre>
+            <pre>[{"id": 1, "today_activities": "活动记录", "work_log_by_ai": "AI生成的工作日志", "log_date": "2024-01-01", "log_time": "12:00:00", "created_by_ai": "DeepSeek"}]</pre>
           </div>
         </div>
       </div>
@@ -548,7 +595,7 @@
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>{"activities": ["活动1", "活动2", "活动3"]}</pre>
+            <pre>{"message": "活动记录生成成功", "activities": ["项目1: 更新进度", "项目2: 会议讨论"]}</pre>
           </div>
         </div>
       </div>
@@ -563,7 +610,7 @@
             <h4>请求头：</h4>
             <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
-            <pre>{"user_id": 1, "work_log_by_ai": "AI生成的工作日志"}</pre>
+            <pre>{"user_id": 1, "work_log_by_ai": "AI生成的工作日志", "today_activities": "活动记录"}</pre>
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
@@ -584,7 +631,7 @@
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>
-            <pre>["活动1", "活动2", "活动3"]</pre>
+            <pre>["项目1: 更新进度", "项目2: 会议讨论"]</pre>
           </div>
         </div>
       </div>
@@ -603,7 +650,7 @@
             <h4>请求头：</h4>
             <pre>Authorization: Bearer {token}</pre>
             <h4>请求参数：</h4>
-            <pre>{"model": "deepseek", "prompt": "提示词", "max_tokens": 500}</pre>
+            <pre>{"model": "deepseek", "prompt": "提示词", "max_tokens": 500, "api_key": "API密钥（可选）"}</pre>
           </div>
           <div class="api-response">
             <h4>响应示例：</h4>

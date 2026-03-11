@@ -133,6 +133,46 @@ def get_projects():
     
     return jsonify(result), 200
 
+# 测试路由
+@bp.route('/test', methods=['GET'])
+def test_route():
+    try:
+        print("测试路由被调用")
+        return jsonify({'message': '测试成功'}), 200
+    except Exception as e:
+        print(f"测试路由失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': '测试失败'}), 500
+
+# 获取项目进度历史
+@bp.route('/<int:id>/progress', methods=['GET'])
+def get_project_progress(id):
+    try:
+        print(f"获取项目{id}的进度历史")
+        # 使用SQLAlchemy ORM查询
+        progresses = ProjectProgress.query.filter_by(project_id=id).order_by(ProjectProgress.update_date.desc()).all()
+        
+        print(f"获取到{len(progresses)}条进度记录")
+        result = []
+        for progress in progresses:
+            result.append({
+                'id': progress.id,
+                'update_content': progress.update_content,
+                'update_date': progress.update_date.strftime('%Y-%m-%d'),
+                'update_time': progress.update_time.strftime('%H:%M:%S'),
+                'updated_by': progress.updated_by,
+                'is_important': progress.is_important
+            })
+        
+        print(f"返回{len(result)}条进度记录")
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"获取项目进度失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': '获取项目进度失败'}), 500
+
 # 获取单个项目
 @bp.route('/<int:id>', methods=['GET'])
 def get_project(id):
@@ -358,27 +398,6 @@ def update_project_progress(id):
         'progressId': new_progress.id,
         'message': '项目进度更新成功'
     }), 200
-
-# 获取项目进度历史
-@bp.route('/<int:id>/progress', methods=['GET'])
-def get_project_progress(id):
-    project = Project.query.filter_by(id=id, is_deleted=False).first()
-    if not project:
-        return jsonify({'error': '项目不存在'}), 404
-    
-    progresses = ProjectProgress.query.filter_by(project_id=id).order_by(ProjectProgress.update_date.desc()).all()
-    result = []
-    for progress in progresses:
-        result.append({
-            'id': progress.id,
-            'update_content': progress.update_content,
-            'update_date': progress.update_date.strftime('%Y-%m-%d'),
-            'update_time': progress.update_time.strftime('%H:%M:%S'),
-            'updated_by': progress.updated_by,
-            'is_important': progress.is_important
-        })
-    
-    return jsonify(result), 200
 
 # 删除项目（软删除）
 @bp.route('/<int:id>', methods=['DELETE'])

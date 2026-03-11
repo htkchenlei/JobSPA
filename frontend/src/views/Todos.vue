@@ -137,7 +137,7 @@ const completedTodos = computed(() => {
 // 从后端获取待办事项
 const fetchTodos = async () => {
   try {
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
     console.log('Fetching todos with token:', token)
     
     if (!token) {
@@ -184,7 +184,7 @@ const closeModal = () => {
 const saveTodo = async () => {
   if (showEditTodo.value) {
     try {
-      const token = localStorage.getItem('token')
+      const token = sessionStorage.getItem('token')
       const response = await fetch(`/api/todos/${todoForm.value.id}`, {
         method: 'PUT',
         headers: {
@@ -206,7 +206,7 @@ const saveTodo = async () => {
 // 切换待办状态
 const toggleTodo = async (id: number) => {
   try {
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
     const response = await fetch(`/api/todos/${id}/complete`, {
       method: 'POST',
       headers: {
@@ -225,7 +225,7 @@ const toggleTodo = async (id: number) => {
 const confirmUndo = async (id: number) => {
   if (confirm('确定要撤销这个已完成的待办事项吗？')) {
     try {
-      const token = localStorage.getItem('token')
+      const token = sessionStorage.getItem('token')
       const response = await fetch(`/api/todos/${id}/uncomplete`, {
         method: 'POST',
         headers: {
@@ -244,7 +244,7 @@ const confirmUndo = async (id: number) => {
 // 添加新待办
 const addNewTodo = async () => {
   try {
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
     const response = await fetch('/api/todos/', {
       method: 'POST',
       headers: {
@@ -267,7 +267,7 @@ const addNewTodo = async () => {
 const deleteTodo = async (id: number) => {
   if (confirm('确定要删除这个待办事项吗？')) {
     try {
-      const token = localStorage.getItem('token')
+      const token = sessionStorage.getItem('token')
       const response = await fetch(`/api/todos/${id}`, {
         method: 'DELETE',
         headers: {

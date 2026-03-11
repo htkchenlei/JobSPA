@@ -249,17 +249,24 @@
           </form>
           
           <!-- 历史更新记录 -->
-          <div v-if="currentProjectProgress.length > 0" class="mt-4">
+          <div class="mt-4">
             <h5>历史更新记录</h5>
-            <div class="progress-item" v-for="progress in currentProjectProgress" :key="progress.id" :class="{ 'important-progress': progress.is_important === 1 }">
-              <div class="progress-content">
-                <span class="progress-meta">{{ progress.update_date }} {{ progress.update_time }}@{{ getUserName(progress.updated_by) }}：</span>
-                <span class="progress-text">{{ progress.update_content }}</span>
+            <div class="debug-info" style="font-size: 12px; color: #666; margin-bottom: 10px;">
+              记录数量: {{ currentProjectProgress.length }}
+              <br>
+              记录内容: {{ JSON.stringify(currentProjectProgress) }}
+            </div>
+            <div v-if="currentProjectProgress && currentProjectProgress.length > 0">
+              <div class="progress-item" v-for="(progress, index) in currentProjectProgress" :key="index" :class="{ 'important-progress': progress.is_important === 1 }">
+                <div class="progress-content">
+                  <span class="progress-meta">{{ progress.update_date }} {{ progress.update_time }}@{{ getUserName(progress.updated_by) }}：</span>
+                  <span class="progress-text">{{ progress.update_content }}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div v-else class="no-progress mt-4">
-            暂无更新记录
+            <div v-else class="no-progress">
+              暂无更新记录
+            </div>
           </div>
         </div>
       </div>
@@ -507,8 +514,12 @@ const getLatestUpdateDateTime = (projectId) => {
 // 获取项目进度
 const fetchProjectProgress = async (projectId) => {
   try {
+    console.log(`开始获取项目${projectId}的进度记录`)
     const response = await fetch(`/api/projects/${projectId}/progress`)
+    console.log(`获取项目${projectId}进度的响应状态:`, response.status)
     const data = await response.json()
+    console.log(`获取到项目${projectId}的进度记录数量:`, data.length)
+    console.log(`获取到的进度记录:`, data)
     // 按照日期和时间倒序排序，最近的更新在最上面
     data.sort((a, b) => {
       // 先比较日期
@@ -523,6 +534,7 @@ const fetchProjectProgress = async (projectId) => {
       return timeB.getTime() - timeA.getTime()
     })
     projectProgresses.value[projectId] = data
+    console.log(`更新后projectProgresses[${projectId}]:`, projectProgresses.value[projectId])
   } catch (error) {
     console.error(`获取项目${projectId}进度失败:`, error)
     projectProgresses.value[projectId] = []
@@ -657,7 +669,7 @@ const saveProject = async () => {
       
       // 确保stage字段是数字类型
       if (projectData.stage) {
-        projectData.stage = parseInt(projectData.stage)
+        projectData.stage = parseInt(String(projectData.stage))
         console.log('更新后的projectData.stage:', projectData.stage, '类型:', typeof projectData.stage)
       }
       
@@ -720,7 +732,7 @@ const saveProject = async () => {
           if (changes.length > 0) {
             // 获取当前登录用户ID
             let currentUserId = 1 // 默认值
-            const userStr = localStorage.getItem('user')
+            const userStr = sessionStorage.getItem('user')
             if (userStr) {
               try {
                 const user = JSON.parse(userStr)
@@ -885,6 +897,7 @@ const confirmCloseModal = () => {
     sales_person: '',
     stage: 1,
     owner: '',
+    owner_username: '',
     province: '',
     city: '',
     district: ''
@@ -906,15 +919,24 @@ const confirmCloseModal = () => {
 
 // 更新项目进展
 const updateProgress = async (project) => {
+  console.log('updateProgress called with project:', project)
+  console.log('project.id:', project.id)
+  
   currentProject.value = project
+  const projectId = project.id
   
   // 每次打开更新模态框时都重新获取最新的项目进度记录
-  await fetchProjectProgress(project.id)
+  console.log('开始获取项目进度记录')
+  await fetchProjectProgress(projectId)
+  console.log('获取项目进度记录完成')
   
-  // 更新当前项目进度记录
-  currentProjectProgress.value = projectProgresses.value[project.id] || []
+  // 直接更新当前项目进度记录，不需要setTimeout
+  console.log('projectProgresses.value[projectId]:', projectProgresses.value[projectId])
+  currentProjectProgress.value = projectProgresses.value[projectId] || []
+  console.log('currentProjectProgress.value before update:', currentProjectProgress.value)
   // 强制更新数组，确保Vue能够检测到变化
   currentProjectProgress.value = [...currentProjectProgress.value]
+  console.log('currentProjectProgress.value after update:', currentProjectProgress.value)
   
   progressForm.value = {
     stage: project.stage,
@@ -922,6 +944,7 @@ const updateProgress = async (project) => {
     is_important: 0
   }
   showUpdateProgress.value = true
+  console.log('showUpdateProgress set to true')
 }
 
 // 查看项目更新记录
@@ -1046,7 +1069,7 @@ const isProjectOverdue = (projectId) => {
   
   const updateDate = new Date(project.latest_update.date)
   const today = new Date()
-  const diffTime = Math.abs(today - updateDate)
+  const diffTime = Math.abs(today.getTime() - updateDate.getTime())
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   
   return diffDays > 60
@@ -1161,6 +1184,7 @@ const openAddProjectModal = () => {
     sales_person: '',
     stage: 1, // 默认第一个阶段
     owner: '',
+    owner_username: '',
     province: '',
     city: '',
     district: ''

@@ -238,13 +238,15 @@ const getTodayActivities = async () => {
 const generateLog = async () => {
   isGenerating.value = true
   try {
+    console.log('开始生成日志')
     // 获取当前登录用户ID
     let currentUserId = 1 // 默认值
-    const userStr = localStorage.getItem('user')
+    const userStr = sessionStorage.getItem('user')
     if (userStr) {
       try {
         const user = JSON.parse(userStr)
         currentUserId = user.id || 1
+        console.log('获取到用户ID:', currentUserId)
       } catch (e) {
         console.error('解析用户信息失败:', e)
       }
@@ -252,6 +254,7 @@ const generateLog = async () => {
     
     // 检查是否有活动记录
     if (currentActivities.value.length === 0) {
+      console.log('没有活动记录，开始生成')
       // 生成活动记录
       const generateResponse = await fetch('/api/work-log/generate-activities', {
         method: 'POST',
@@ -264,10 +267,12 @@ const generateLog = async () => {
       if (generateResponse.ok) {
         const generateData = await generateResponse.json()
         currentActivities.value = generateData.activities
+        console.log('生成的活动记录:', currentActivities.value)
         
         // 构建提示词
         if (currentActivities.value.length > 0) {
           currentPrompt.value = `假设你是一位售前工程师，为了向公司展示项目进度和工作进度，请根据以下今天的活动记录，生成一份工作日志，字数不少于40字：\n${currentActivities.value.join('\n')}`
+          console.log('构建的提示词:', currentPrompt.value)
         } else {
           console.log('今天没有活动记录')
           return
@@ -276,6 +281,9 @@ const generateLog = async () => {
         console.error('生成活动记录失败:', await generateResponse.text())
         return
       }
+    } else {
+      console.log('已有活动记录:', currentActivities.value)
+      console.log('当前提示词:', currentPrompt.value)
     }
     
     // 从localStorage获取AI设置
@@ -286,9 +294,13 @@ const generateLog = async () => {
       const aiSettings = JSON.parse(aiSettingsStr)
       model = aiSettings.defaultModel || 'deepseek'
       apiKey = aiSettings.apiKeys?.[model] || ''
+      console.log('获取到AI设置:', { model, apiKey: apiKey ? '已设置' : '未设置' })
+    } else {
+      console.log('未找到AI设置，使用默认值')
     }
     
     // 调用大模型API
+    console.log('开始调用大模型API')
     const response = await fetch('/api/ai/generate', {
       method: 'POST',
       headers: {
@@ -302,18 +314,22 @@ const generateLog = async () => {
       })
     })
     
+    console.log('API调用响应状态:', response.status)
     if (response.ok) {
       const data = await response.json()
+      console.log('API调用成功，返回数据:', data)
       generatedLog.value = data.content
       // 清除selectedLog，这样按钮会显示"生成今日日志"
       selectedLog.value = null
     } else {
-      console.error('生成日志失败:', await response.text())
+      const errorText = await response.text()
+      console.error('生成日志失败:', errorText)
     }
   } catch (error) {
     console.error('生成日志失败:', error)
   } finally {
     isGenerating.value = false
+    console.log('生成日志过程结束')
   }
 }
 
@@ -324,7 +340,7 @@ const saveLog = async () => {
   try {
     // 获取当前登录用户ID
     let currentUserId = 1 // 默认值
-    const userStr = localStorage.getItem('user')
+    const userStr = sessionStorage.getItem('user')
     if (userStr) {
       try {
         const user = JSON.parse(userStr)
@@ -383,7 +399,7 @@ onMounted(async () => {
   try {
     // 获取当前登录用户ID
     let currentUserId = 1 // 默认值
-    const userStr = localStorage.getItem('user')
+    const userStr = sessionStorage.getItem('user')
     if (userStr) {
       try {
         const user = JSON.parse(userStr)

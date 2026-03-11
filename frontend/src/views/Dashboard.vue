@@ -199,7 +199,7 @@ const fetchProjectStats = async () => {
 
 // 获取认证头
 const getAuthHeader = () => {
-  const token = localStorage.getItem('token')
+  const token = sessionStorage.getItem('token')
   return token ? { 'Authorization': `Bearer ${token}` } : {}
 }
 

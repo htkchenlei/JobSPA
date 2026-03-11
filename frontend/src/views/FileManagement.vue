@@ -191,7 +191,7 @@ onMounted(() => {
 // 从后端获取文件系统数据
 const fetchFileSystem = async () => {
   try {
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
     console.log('Fetching file system with token:', token)
     
     if (!token) {
@@ -278,7 +278,7 @@ const createSubFolder = (parentNode) => {
 const saveFolder = async () => {
   try {
     console.log('保存文件夹，表单数据:', folderForm.value)
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
     const response = await fetch('/api/files/folders', {
       method: 'POST',
       headers: {
@@ -376,7 +376,7 @@ const handleFileUpload = async () => {
   const fileInput = document.querySelector('input[type="file"]')
   if (fileInput.files.length > 0) {
     try {
-      const token = localStorage.getItem('token')
+      const token = sessionStorage.getItem('token')
       const formData = new FormData()
       
       for (let i = 0; i < fileInput.files.length; i++) {
@@ -431,7 +431,7 @@ const handleFileUpload = async () => {
 const deleteNode = async (node) => {
   if (confirm('确定要删除 ' + node.name + ' 吗？')) {
     try {
-      const token = localStorage.getItem('token')
+      const token = sessionStorage.getItem('token')
       const response = await fetch(`/api/files/${node.id}`, {
         method: 'DELETE',
         headers: {
@@ -495,7 +495,7 @@ const deleteNode = async (node) => {
 const deleteFile = async (fileId) => {
   if (confirm('确定要删除该文件吗？')) {
     try {
-      const token = localStorage.getItem('token')
+      const token = sessionStorage.getItem('token')
       const response = await fetch(`/api/files/${fileId}`, {
         method: 'DELETE',
         headers: {

@@ -38,9 +38,9 @@
           <span class="menu-icon">📅</span>
           <span class="menu-text">工作日志</span>
         </router-link>
-        <router-link to="/place-search" class="menu-item">
-          <span class="menu-icon">🗺️</span>
-          <span class="menu-text">地名查询</span>
+        <router-link to="/bid-tool" class="menu-item">
+          <span class="menu-icon">🎯</span>
+          <span class="menu-text">投标工具</span>
         </router-link>
         <div class="menu-item user-profile" @click="changePassword">
           <span class="menu-icon">👤</span>
@@ -83,7 +83,7 @@ const sidebarCollapsed = ref(false)
 
 // 获取用户名
 const userName = computed(() => {
-  const userStr = localStorage.getItem('user')
+  const userStr = sessionStorage.getItem('user')
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
@@ -105,7 +105,7 @@ const currentRouteName = computed(() => {
       '/todos': '待办事项',
       '/file-management': '文件管理',
       '/work-log': '工作日志',
-      '/place-search': '地名查询',
+      '/bid-tool': '投标工具',
       '/settings': '个人设置'
     }
     return routeMap[route.path] || '仪表盘'
@@ -124,9 +124,9 @@ const changePassword = () => {
 
 // 登出
 const logout = () => {
-  // 清除localStorage中的token和用户信息
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
+  // 清除sessionStorage中的token和用户信息
+  sessionStorage.removeItem('token')
+  sessionStorage.removeItem('user')
   // 跳转到登录页面
   router.push('/login')
 }

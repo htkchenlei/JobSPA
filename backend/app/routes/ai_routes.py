@@ -1,7 +1,14 @@
 from flask import Blueprint, request, jsonify
 import requests
 import os
+import sys
 from dotenv import load_dotenv
+
+# 设置默认编码为utf-8
+if sys.version_info[0] >= 3:
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # 加载环境变量
 load_dotenv()
@@ -91,6 +98,9 @@ def generate_text():
                 return jsonify({'error': f'API调用失败: {response.text}'}), 500
         
         elif model_name == 'qwen':
+            print(f"调用Qwen API，URL: {model_config['url']}")
+            print(f"Prompt长度: {len(prompt)} 字符")
+            
             response = requests.post(
                 model_config['url'],
                 headers={
@@ -106,6 +116,9 @@ def generate_text():
                 }
             )
             
+            print(f"Qwen API响应状态码: {response.status_code}")
+            print(f"Qwen API响应内容: {response.text}")
+            
             if response.status_code == 200:
                 result = response.json()
                 content = result['output']['text']
@@ -114,6 +127,9 @@ def generate_text():
                 return jsonify({'error': f'API调用失败: {response.text}'}), 500
         
         elif model_name == 'doubao':
+            print(f"调用Doubao API，URL: {model_config['url']}")
+            print(f"Prompt长度: {len(prompt)} 字符")
+            
             response = requests.post(
                 model_config['url'],
                 headers={
@@ -131,6 +147,9 @@ def generate_text():
                     'max_tokens': max_tokens
                 }
             )
+            
+            print(f"Doubao API响应状态码: {response.status_code}")
+            print(f"Doubao API响应内容: {response.text}")
             
             if response.status_code == 200:
                 result = response.json()

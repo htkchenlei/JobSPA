@@ -61,9 +61,9 @@ const router = createRouter({
           component: () => import('../views/WorkLog.vue')
         },
         {
-          path: 'place-search',
-          name: 'placeSearch',
-          component: () => import('../views/PlaceSearch.vue')
+          path: 'bid-tool',
+          name: 'bidTool',
+          component: () => import('../views/BidTool.vue')
         },
 
       ]
@@ -71,16 +71,29 @@ const router = createRouter({
   ]
 })
 
+// 检查token是否过期
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp < Date.now() / 1000
+  } catch (error) {
+    return true
+  }
+}
+
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 检查路由是否需要认证
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
   
-  // 检查用户是否已登录（通过localStorage中的token）
-  const isLoggedIn = localStorage.getItem('token') !== null
+  // 检查用户是否已登录（通过sessionStorage中的token）
+  const token = sessionStorage.getItem('token')
+  const isLoggedIn = token !== null && !isTokenExpired(token)
   
   if (requiresAuth && !isLoggedIn) {
-    // 需要认证但未登录，重定向到登录页面
+    // 需要认证但未登录或token已过期，重定向到登录页面
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('user')
     next('/login')
   } else if (to.path === '/login' && isLoggedIn) {
     // 已登录但尝试访问登录页面，重定向到仪表板
