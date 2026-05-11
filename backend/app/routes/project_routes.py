@@ -1,0 +1,635 @@
+from flask import Blueprint, request, jsonify
+from ..models.models import User, Project, ProjectProgress, LatestUpdate
+from .. import db
+from datetime import datetime, date, time, timedelta
+
+# 东八区时间偏移量
+EAST_8_OFFSET = timedelta(hours=8)
+
+# 获取当前东八区时间
+def get_east_8_time():
+    return datetime.utcnow() + EAST_8_OFFSET
+
+# 创建蓝图
+bp = Blueprint('projects', __name__, url_prefix='/api/projects')
+
+# 项目阶段映射
+STAGE_MAP = {
+    1: '立项中|初步沟通',
+    2: '立项中|提交立项申请',
+    3: '已立项|编制解决方案',
+    4: '已立项|编制设计方案',
+    5: '已立项|编制招投标参数',
+    6: '招投标|编制参数',
+    7: '招投标|已挂网',
+    8: '招投标|等待结果',
+    9: '已中标|已公示',
+    10: '已中标|已获取中标通知书',
+    11: '已中标|签署合同',
+    12: '已完成|转入项目实施',
+    13: '已完成|项目结束'
+}
+
+# 获取最近的更新记录（从project_progress表获取）
+@bp.route('/latest-updates', methods=['GET'])
+def get_latest_updates():
+    from sqlalchemy import text
+    query = text("""
+        SELECT pp.id, pp.project_id, p.name as project_name, 
+               pp.update_content, pp.update_date, pp.update_time, pp.updated_by
+        FROM project_progress pp
+        JOIN projects p ON pp.project_id = p.id
+        WHERE p.is_deleted = 0
+        ORDER BY pp.update_date DESC, pp.update_time DESC
+        LIMIT 10
+    """)
+    
+    result = []
+    with db.engine.connect() as conn:
+        rows = conn.execute(query).fetchall()
+        for row in rows:
+            result.append({
+                'id': row.id,
+                'project_id': row.project_id,
+                'project_name': row.project_name,
+                'update_content': row.update_content,
+                'update_date': str(row.update_date),
+                'update_time': str(row.update_time).split('.')[0],
+                'updated_by': row.updated_by
+            })
+    
+    return jsonify(result), 200
+
+# 获取项目列表
+@bp.route('/', methods=['GET'])
+def get_projects():
+    # 调试信息
+    print("开始获取项目列表...")
+    
+    # 使用与app/__init__.py文件中相同的方式创建SQLAlchemy引擎
+    from sqlalchemy import create_engine, text
+    from app import app
+    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+    with engine.connect() as conn:
+        # 测试查询项目表中的记录数
+        count_result = conn.execute(text("SELECT count(*) FROM projects"))
+        count = count_result.scalar()
+        print(f"\n项目表中的记录数: {count}")
+        
+        # 测试查询项目表中的记录数，使用不同的方式
+        count_result2 = conn.execute(text("SELECT count(*) FROM projects WHERE 1=1"))
+        count2 = count_result2.scalar()
+        print(f"项目表中的记录数 (WHERE 1=1): {count2}")
+        
+        # 查询项目数据，只查询未删除的项目
+        project_result = conn.execute(text("SELECT id, name, client_name, scale, start_date, location, sales_person, stage, is_deleted, owner, province, city, district FROM projects WHERE is_deleted = 0"))
+        projects = project_result.fetchall()
+        print(f"\n使用引擎查询到 {len(projects)} 个项目")
+        
+        # 打印前5个项目
+        print("\n前5个项目:")
+        for i, project in enumerate(projects[:5]):
+            print(f"项目 {project[1]} (ID: {project[0]})")
+        
+        result = []
+        for project in projects:
+            project_id = project[0]
+            project_name = project[1]
+            client_name = project[2]
+            scale = project[3]
+            start_date = project[4]
+            location = project[5]
+            sales_person = project[6]
+            stage_int = int(project[7])
+            is_deleted = project[8]
+            owner = project[9]
+            province = project[10]
+            city = project[11]
+            district = project[12]
+            
+            stage_text = STAGE_MAP.get(stage_int, '未知阶段')
+            # 只显示"|"前面的内容
+            if '|' in stage_text:
+                stage_text = stage_text.split('|')[0]
+            print(stage_text)
+            
+            # 获取负责人用户名
+            owner_username = None
+            if owner:
+                user_result = conn.execute(text(f"SELECT username FROM users WHERE id = {owner}"))
+                user = user_result.fetchone()
+                if user:
+                    owner_username = user[0]
+            
+            # 获取该项目的最新更新信息
+            latest_update_result = conn.execute(text(f"SELECT update_content, update_date, update_time, updated_by FROM latest_update WHERE project_id = {project_id}"))
+            latest_update = latest_update_result.fetchone()
+            update_content = latest_update[0] if latest_update else '暂无更新'
+            # 检查update_date的类型
+            if latest_update and latest_update[1]:
+                if isinstance(latest_update[1], str):
+                    update_date = latest_update[1]
+                else:
+                    update_date = latest_update[1].strftime('%Y-%m-%d')
+            else:
+                update_date = '暂无更新'
+            update_time = latest_update[2] if (latest_update and latest_update[2]) else '暂无更新'
+            updated_by = latest_update[3] if latest_update else None
+            
+            # 检查start_date的类型
+            if start_date:
+                if isinstance(start_date, str):
+                    formatted_start_date = start_date
+                else:
+                    formatted_start_date = start_date.strftime('%Y-%m-%d')
+            else:
+                formatted_start_date = None
+            
+            result.append({
+                'id': project_id,
+                'name': project_name,
+                'client_name': client_name,
+                'scale': scale,
+                'start_date': formatted_start_date,
+                'location': location,
+                'sales_person': sales_person,
+                'stage': stage_int,
+                'stage_text': stage_text,
+                'owner': owner,
+                'owner_username': owner_username,
+                'province': province,
+                'city': city,
+                'district': district,
+                'latest_update': {
+                    'content': update_content,
+                    'date': update_date,
+                    'time': update_time,
+                    'by': updated_by
+                }
+            })
+    
+    return jsonify(result), 200
+
+# 获取项目进度历史
+@bp.route('/<int:id>/progress', methods=['GET'])
+def get_project_progress(id):
+    print(f"获取项目{id}的进度历史")
+    
+    # 验证项目是否存在
+    project = Project.query.filter_by(id=id, is_deleted=False).first()
+    if not project:
+        return jsonify({'error': '项目不存在'}), 404
+    
+    # 从数据库查询该项目的所有进度记录，按日期和时间倒序排序
+    progresses = ProjectProgress.query.filter_by(project_id=id)\
+        .order_by(ProjectProgress.update_date.desc(), ProjectProgress.update_time.desc())\
+        .all()
+    
+    print(f"查询到 {len(progresses)} 条进度记录")
+    
+    result = []
+    for progress in progresses:
+        result.append({
+            'id': progress.id,
+            'project_id': progress.project_id,
+            'update_content': progress.update_content,
+            'update_date': progress.update_date.strftime('%Y-%m-%d') if progress.update_date else None,
+            'update_time': progress.update_time.strftime('%H:%M:%S') if progress.update_time else None,
+            'updated_by': progress.updated_by,
+            'is_important': progress.is_important
+        })
+    
+    return jsonify(result), 200
+
+# 获取单个项目
+@bp.route('/<int:id>', methods=['GET'])
+def get_project(id):
+    project = Project.query.filter_by(id=id, is_deleted=False).first()
+    if not project:
+        return jsonify({'error': '项目不存在'}), 404
+    
+    stage_int = int(project.stage)
+    stage_text = STAGE_MAP.get(stage_int, '未知阶段')
+    # 只显示"|"前面的内容
+    if '|' in stage_text:
+        stage_text = stage_text.split('|')[0]
+    
+    # 获取该项目的最新更新信息
+    latest_update = LatestUpdate.query.filter_by(project_id=project.id).first()
+    update_content = latest_update.update_content if latest_update else '暂无更新'
+    update_date = latest_update.update_date.strftime('%Y-%m-%d') if (latest_update and latest_update.update_date) else '暂无更新'
+    update_time = latest_update.update_time.strftime('%H:%M:%S') if (latest_update and latest_update.update_time) else '暂无更新'
+    updated_by = latest_update.updated_by if latest_update else None
+    
+    # 从数据库获取该项目的进度历史记录
+    progresses = ProjectProgress.query.filter_by(project_id=project.id)\
+        .order_by(ProjectProgress.update_date.desc(), ProjectProgress.update_time.desc())\
+        .all()
+    
+    progress_list = []
+    for progress in progresses:
+        progress_list.append({
+            'id': progress.id,
+            'project_id': progress.project_id,
+            'update_content': progress.update_content,
+            'update_date': progress.update_date.strftime('%Y-%m-%d') if progress.update_date else None,
+            'update_time': progress.update_time.strftime('%H:%M:%S') if progress.update_time else None,
+            'updated_by': progress.updated_by,
+            'is_important': progress.is_important
+        })
+    
+    return jsonify({
+        'id': project.id,
+        'name': project.name,
+        'client_name': project.client_name,
+        'scale': project.scale,
+        'start_date': project.start_date.strftime('%Y-%m-%d') if project.start_date else None,
+        'location': project.location,
+        'sales_person': project.sales_person,
+        'stage': stage_int,
+        'stage_text': stage_text,
+        'owner': project.owner,
+        'province': project.province,
+        'city': project.city,
+        'district': project.district,
+        'latest_update': {
+            'content': update_content,
+            'date': update_date,
+            'time': update_time,
+            'by': updated_by
+        },
+        'progress': progress_list
+    }), 200
+
+# 创建项目
+@bp.route('/', methods=['POST'])
+def create_project():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '缺少请求数据'}), 400
+    
+    # 处理日期字段
+    start_date_str = data.get('start_date')
+    start_date = None
+    if start_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    
+    # 根据owner字段（用户名）查询user表，获取用户ID
+    owner_name = data.get('owner')
+    owner_id = 1  # 默认用户ID
+    if owner_name:
+        # 尝试根据用户名查询用户
+        user = User.query.filter_by(username=owner_name).first()
+        if user:
+            owner_id = user.id
+    
+    new_project = Project(
+        name=data.get('name'),
+        client_name=data.get('client_name'),
+        scale=data.get('scale'),
+        start_date=start_date,
+        location=data.get('location'),
+        sales_person=data.get('sales_person'),
+        stage=data.get('stage', 1),
+        owner=owner_id,
+        province=data.get('province'),
+        city=data.get('city'),
+        district=data.get('district')
+    )
+    
+    db.session.add(new_project)
+    db.session.commit()
+    
+    stage_int = int(new_project.stage)
+    stage_text = STAGE_MAP.get(stage_int, '未知阶段')
+    # 只显示"|"前面的内容
+    if '|' in stage_text:
+        stage_text = stage_text.split('|')[0]
+    return jsonify({
+        'id': new_project.id,
+        'name': new_project.name,
+        'client_name': new_project.client_name,
+        'scale': new_project.scale,
+        'start_date': new_project.start_date.strftime('%Y-%m-%d') if new_project.start_date else None,
+        'location': new_project.location,
+        'sales_person': new_project.sales_person,
+        'stage': stage_int,
+        'stage_text': stage_text,
+        'owner': new_project.owner,
+        'province': new_project.province,
+        'city': new_project.city,
+        'district': new_project.district
+    }), 201
+
+# 更新项目
+@bp.route('/<int:id>', methods=['PUT'])
+def update_project(id):
+    project = Project.query.filter_by(id=id, is_deleted=False).first()
+    if not project:
+        return jsonify({'error': '项目不存在'}), 404
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '缺少请求数据'}), 400
+    
+    # 处理日期字段
+    start_date_str = data.get('start_date')
+    if start_date_str:
+        project.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    
+    # 更新其他字段
+    project.name = data.get('name', project.name)
+    project.client_name = data.get('client_name', project.client_name)
+    project.scale = data.get('scale', project.scale)
+    project.location = data.get('location', project.location)
+    project.sales_person = data.get('sales_person', project.sales_person)
+    project.stage = data.get('stage', project.stage)
+    
+    # 根据owner字段（用户名）查询user表，获取用户ID
+    owner_name = data.get('owner')
+    if owner_name:
+        # 尝试根据用户名查询用户
+        user = User.query.filter_by(username=owner_name).first()
+        if user:
+            project.owner = user.id
+    
+    project.province = data.get('province', project.province)
+    project.city = data.get('city', project.city)
+    project.district = data.get('district', project.district)
+    
+    db.session.commit()
+    
+    stage_int = int(project.stage)
+    stage_text = STAGE_MAP.get(stage_int, '未知阶段')
+    # 只显示"|"前面的内容
+    if '|' in stage_text:
+        stage_text = stage_text.split('|')[0]
+    return jsonify({
+        'id': project.id,
+        'name': project.name,
+        'client_name': project.client_name,
+        'scale': project.scale,
+        'start_date': project.start_date.strftime('%Y-%m-%d') if project.start_date else None,
+        'location': project.location,
+        'sales_person': project.sales_person,
+        'stage': stage_int,
+        'stage_text': stage_text,
+        'owner': project.owner,
+        'province': project.province,
+        'city': project.city,
+        'district': project.district
+    }), 200
+
+# 更新项目进度
+@bp.route('/<int:id>/progress', methods=['POST'])
+def update_project_progress(id):
+    project = Project.query.filter_by(id=id, is_deleted=False).first()
+    if not project:
+        return jsonify({'error': '项目不存在'}), 404
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '缺少请求数据'}), 400
+    
+    # 获取当前东八区日期和时间
+    east_8_now = get_east_8_time()
+    today = east_8_now.date()
+    now = east_8_now.time()
+    
+    # 创建进度记录
+    new_progress = ProjectProgress(
+        project_id=project.id,
+        update_content=data.get('update_content', ''),
+        update_date=today,
+        updated_by=data.get('updated_by', 1),  # 默认用户ID为1
+        update_time=now,
+        is_important=data.get('is_important', 0)
+    )
+    
+    # 如果提供了新的阶段，更新项目阶段
+    if 'stage' in data:
+        project.stage = data['stage']
+    
+    # 检查latest_update表中是否已存在该项目的记录
+    latest_update = LatestUpdate.query.filter_by(project_id=project.id).first()
+    
+    if latest_update:
+        # 如果存在，更新记录
+        latest_update.update_content = data.get('update_content', '')
+        latest_update.update_date = today
+        latest_update.updated_by = data.get('updated_by', 1)
+        latest_update.update_time = now
+    else:
+        # 如果不存在，创建新记录
+        latest_update = LatestUpdate(
+            project_id=project.id,
+            update_content=data.get('update_content', ''),
+            update_date=today,
+            updated_by=data.get('updated_by', 1),
+            update_time=now
+        )
+        db.session.add(latest_update)
+    
+    db.session.add(new_progress)
+    db.session.commit()
+    
+    stage_int = int(project.stage)
+    stage_text = STAGE_MAP.get(stage_int, '未知阶段')
+    # 只显示"|"前面的内容
+    if '|' in stage_text:
+        stage_text = stage_text.split('|')[0]
+    return jsonify({
+        'id': project.id,
+        'stage': stage_int,
+        'stage_text': stage_text,
+        'progressId': new_progress.id,
+        'message': '项目进度更新成功'
+    }), 200
+
+# 删除项目（软删除）
+@bp.route('/<int:id>', methods=['DELETE'])
+def delete_project(id):
+    project = Project.query.filter_by(id=id, is_deleted=False).first()
+    if not project:
+        return jsonify({'error': '项目不存在'}), 404
+    
+    project.is_deleted = True
+    db.session.commit()
+    
+    return jsonify({'message': '项目删除成功'}), 200
+
+# 恢复项目（仅admin）
+@bp.route('/<int:id>/restore', methods=['POST'])
+def restore_project(id):
+    project = Project.query.filter_by(id=id, is_deleted=True).first()
+    if not project:
+        return jsonify({'error': '项目不存在或未被删除'}), 404
+    
+    # 这里可以添加admin权限验证
+    
+    project.is_deleted = False
+    db.session.commit()
+    
+    return jsonify({'message': '项目恢复成功'}), 200
+
+# 获取项目阶段列表
+@bp.route('/stages', methods=['GET'])
+def get_project_stages():
+    result = []
+    for stage, text in STAGE_MAP.items():
+        # 只显示"|"前面的内容
+        display_text = text
+        if '|' in display_text:
+            display_text = display_text.split('|')[0]
+        result.append({
+            'value': stage,
+            'label': display_text
+        })
+    return jsonify(result), 200
+
+# 关键词搜索
+@bp.route('/search', methods=['POST'])
+def search_projects():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '缺少请求数据'}), 400
+    
+    keywords = data.get('keywords', '')
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    
+    # 处理关键词
+    keyword_list = [k.strip() for k in keywords.split() if k.strip()]
+    
+    # 构建查询
+    from sqlalchemy import or_
+    
+    # 从projects表中搜索name字段
+    project_query = Project.query.filter_by(is_deleted=False)
+    if keyword_list:
+        project_filters = []
+        for keyword in keyword_list:
+            project_filters.append(Project.name.ilike(f'%{keyword}%'))
+        project_query = project_query.filter(or_(*project_filters))
+    
+    # 从project_progress表中搜索update_content字段，然后关联到projects表
+    from sqlalchemy.orm import joinedload
+    progress_query = ProjectProgress.query
+    if keyword_list:
+        progress_filters = []
+        for keyword in keyword_list:
+            progress_filters.append(ProjectProgress.update_content.ilike(f'%{keyword}%'))
+        progress_query = progress_query.filter(or_(*progress_filters))
+    
+    # 获取所有匹配的项目ID
+    project_ids = set()
+    
+    # 从projects表中获取匹配的项目ID
+    for project in project_query.all():
+        project_ids.add(project.id)
+    
+    # 从project_progress表中获取匹配的项目ID
+    for progress in progress_query.all():
+        project_ids.add(progress.project_id)
+    
+    # 查询所有匹配的项目
+    if project_ids:
+        projects = Project.query.filter(Project.id.in_(project_ids), Project.is_deleted == False).all()
+    else:
+        projects = []
+    
+    # 构建返回结果
+    result = []
+    for project in projects:
+        stage_int = int(project.stage)
+        stage_text = STAGE_MAP.get(stage_int, '未知阶段')
+        # 只显示"|"前面的内容
+        if '|' in stage_text:
+            stage_text = stage_text.split('|')[0]
+        
+        result.append({
+            'id': project.id,
+            'name': project.name,
+            'client_name': project.client_name,
+            'scale': project.scale,
+            'start_date': project.start_date.strftime('%Y-%m-%d') if project.start_date else None,
+            'location': project.location,
+            'sales_person': project.sales_person,
+            'stage': stage_int,
+            'stage_text': stage_text,
+            'owner': project.owner,
+            'province': project.province,
+            'city': project.city,
+            'district': project.district
+        })
+    
+    return jsonify(result), 200
+
+# 获取最近的项目更新（从project_progress表中取最近的记录）
+@bp.route('/recent-updates', methods=['GET'])
+def get_recent_updates():
+    import sqlite3
+    import os
+    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'projectmanagement.db')
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT pp.id, pp.project_id, p.name as project_name, 
+               pp.update_content, pp.update_date, pp.update_time, pp.updated_by
+        FROM project_progress pp
+        JOIN projects p ON pp.project_id = p.id
+        WHERE p.is_deleted = 0
+        ORDER BY pp.update_date DESC, pp.update_time DESC
+        LIMIT 10
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    result = []
+    for row in rows:
+        result.append({
+            'id': row[0],
+            'project_id': row[1],
+            'project_name': row[2],
+            'update_content': row[3],
+            'update_date': str(row[4]),
+            'update_time': str(row[5]).split('.')[0],
+            'updated_by': row[6]
+        })
+    
+    return jsonify(result), 200
+
+@bp.route('/today-updates', methods=['GET'])
+def get_today_updates():
+    import sqlite3
+    import os
+    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'projectmanagement.db')
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT pp.id, pp.project_id, p.name as project_name, 
+               pp.update_content, pp.update_date, pp.update_time, pp.updated_by
+        FROM project_progress pp
+        JOIN projects p ON pp.project_id = p.id
+        WHERE p.is_deleted = 0
+        ORDER BY pp.update_date DESC, pp.update_time DESC
+        LIMIT 10
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    result = []
+    for row in rows:
+        result.append({
+            'id': row[0],
+            'project_id': row[1],
+            'project_name': row[2],
+            'update_content': row[3],
+            'update_date': str(row[4]),
+            'update_time': str(row[5]).split('.')[0],
+            'updated_by': row[6]
+        })
+    
+    return jsonify(result), 200

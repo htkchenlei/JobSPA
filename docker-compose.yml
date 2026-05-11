@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  jobspa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jobspa:latest
+    container_name: jobspa
+    restart: unless-stopped
+    ports:
+      - "15667:5000"
+    volumes:
+      # 数据持久化 - 数据库文件
+      - ./data:/app/data
+      # 文件上传目录
+      - ./uploads:/app/uploads
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-your_secret_key_change_me}
+      - DATABASE_URL=sqlite:////app/data/projectmanagement.db
+      # AI 配置 (可选)
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_API_URL=${DEEPSEEK_API_URL:-https://api.deepseek.com/v1/chat/completions}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# 如需使用外部网络，取消下面的注释
+# networks:
+#   default:
+#     external:
+#       name: your_network_name
