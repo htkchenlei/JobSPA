@@ -68,29 +68,6 @@
           </transition>
         </router-link>
         
-        <router-link to="/todos" class="menu-item">
-          <span class="menu-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2"/>
-              <path d="M8 12L11 15L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <transition name="fade">
-            <span v-if="!sidebarCollapsed" class="menu-text">待办事项</span>
-          </transition>
-        </router-link>
-        
-        <router-link to="/file-management" class="menu-item">
-          <span class="menu-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 7V17C4 19.2091 5.79086 21 8 21H16C18.2091 21 20 19.2091 20 17V9C20 7.89543 19.1046 7 18 7H13L11 5H6C4.89543 5 4 5.89543 4 7Z" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </span>
-          <transition name="fade">
-            <span v-if="!sidebarCollapsed" class="menu-text">文件管理</span>
-          </transition>
-        </router-link>
-
         <router-link to="/work-log" class="menu-item">
           <span class="menu-icon">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -103,19 +80,6 @@
           </span>
           <transition name="fade">
             <span v-if="!sidebarCollapsed" class="menu-text">工作日志</span>
-          </transition>
-        </router-link>
-        
-        <router-link to="/bid-tool" class="menu-item">
-          <span class="menu-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
-              <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
-              <circle cx="12" cy="12" r="1" fill="currentColor"/>
-            </svg>
-          </span>
-          <transition name="fade">
-            <span v-if="!sidebarCollapsed" class="menu-text">投标工具</span>
           </transition>
         </router-link>
         
@@ -195,10 +159,7 @@ const currentRouteName = computed(() => {
       '/project-management': '项目管理',
       '/advanced-search': '高级查询',
       '/statistics': '统计分析',
-      '/todos': '待办事项',
-      '/file-management': '文件管理',
       '/work-log': '工作日志',
-      '/bid-tool': '投标工具',
       '/settings': '个人设置'
     }
     return routeMap[route.path] || '仪表盘'

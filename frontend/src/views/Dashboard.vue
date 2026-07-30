@@ -24,21 +24,6 @@
         </div>
       </div>
       
-      <!-- 待办事项 -->
-      <div class="stat-card todo-card">
-        <div class="stat-content">
-          <p class="stat-label">待办事项</p>
-          <h3 class="stat-value">{{ todoStats.pending }}</h3>
-          <p class="stat-detail">
-            <span>{{ Math.round((todoStats.completed / (todoStats.pending + todoStats.completed || 1)) * 100) }}%</span> 完成率
-          </p>
-        </div>
-        <div class="stat-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-        </div>
-      </div>
       
       <!-- 今日活动 -->
       <div class="stat-card activity-card">
@@ -56,44 +41,18 @@
         </div>
       </div>
       
-      <!-- 文件管理 -->
-      <div class="stat-card file-card">
-        <div class="stat-content">
-          <p class="stat-label">文件管理</p>
-          <h3 class="stat-value">{{ fileStats.total }}</h3>
-          <p class="stat-detail">
-            <span>{{ fileStats.folders }}</span> 个文件夹
-          </p>
-        </div>
-        <div class="stat-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-          </svg>
-        </div>
-      </div>
     </div>
     
     <!-- 图表区域 -->
     <div class="charts-section">
       <!-- 项目进度图表 -->
-      <div class="chart-container">
+      <div class="chart-container full-width">
         <div class="chart-header">
           <h3>项目进度</h3>
           <div class="chart-period">最近30天</div>
         </div>
         <div class="chart-content">
           <canvas ref="projectChart"></canvas>
-        </div>
-      </div>
-      
-      <!-- 待办事项完成情况图表 -->
-      <div class="chart-container">
-        <div class="chart-header">
-          <h3>待办事项完成情况</h3>
-          <div class="chart-period">本月</div>
-        </div>
-        <div class="chart-content">
-          <canvas ref="todoChart"></canvas>
         </div>
       </div>
     </div>
@@ -128,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import Chart from 'chart.js/auto'
 import router from '../router'
 
@@ -138,21 +97,9 @@ const projectStats = ref({
   inProgress: 0
 })
 
-// 待办事项统计数据
-const todoStats = ref({
-  pending: 0,
-  completed: 0
-})
-
 // 工作日志统计数据
 const workLogStats = ref({
   weekly: 0
-})
-
-// 文件统计数据
-const fileStats = ref({
-  total: 0,
-  folders: 0
 })
 
 // 今日活动
@@ -163,9 +110,7 @@ const recentActivities = ref<any[]>([])
 
 // 图表引用
 const projectChart = ref<HTMLCanvasElement | null>(null)
-const todoChart = ref<HTMLCanvasElement | null>(null)
 const projectChartInstance = ref<Chart | null>(null)
-const todoChartInstance = ref<Chart | null>(null)
 
 // 项目阶段映射
 const STAGE_MAP = {
@@ -199,30 +144,6 @@ const getAuthHeader = () => {
   return token ? { 'Authorization': `Bearer ${token}` } : {}
 }
 
-// 获取待办事项统计数据
-const fetchTodoStats = async () => {
-  try {
-    const response = await fetch('/api/todos/', {
-      headers: getAuthHeader()
-    })
-    if (response.ok) {
-      const todos = await response.json()
-      todoStats.value.pending = todos.filter((t: any) => !t.is_finished).length
-      todoStats.value.completed = todos.filter((t: any) => t.is_finished).length
-    } else if (response.status === 401) {
-      // 未授权访问，使用默认数据
-      console.warn('获取待办事项统计数据失败: 未授权访问')
-      todoStats.value.pending = 0
-      todoStats.value.completed = 0
-    }
-  } catch (error) {
-    console.error('获取待办事项统计数据失败:', error)
-    // 出错时使用默认数据
-    todoStats.value.pending = 0
-    todoStats.value.completed = 0
-  }
-}
-
 // 获取今日活动
 const fetchTodayActivities = async () => {
   try {
@@ -241,46 +162,6 @@ const fetchTodayActivities = async () => {
     console.error('获取今日活动失败:', error)
     // 出错时使用默认数据
     todayActivities.value = []
-  }
-}
-
-// 获取文件统计数据
-const fetchFileStats = async () => {
-  try {
-    const response = await fetch('/api/files/', {
-      headers: getAuthHeader()
-    })
-    if (response.ok) {
-      const fileSystem = await response.json()
-      // 简单统计文件和文件夹数量
-      let totalFiles = 0
-      let totalFolders = 0
-      
-      const countFiles = (node: any) => {
-        if (node.type === 'folder') {
-          totalFolders++
-          if (node.children) {
-            node.children.forEach((child: any) => countFiles(child))
-          }
-        } else {
-          totalFiles++
-        }
-      }
-      
-      countFiles(fileSystem)
-      fileStats.value.total = totalFiles
-      fileStats.value.folders = totalFolders
-    } else if (response.status === 401) {
-      // 未授权访问，使用默认数据
-      console.warn('获取文件统计数据失败: 未授权访问')
-      fileStats.value.total = 0
-      fileStats.value.folders = 0
-    }
-  } catch (error) {
-    console.error('获取文件统计数据失败:', error)
-    // 出错时使用默认数据
-    fileStats.value.total = 0
-    fileStats.value.folders = 0
   }
 }
 
@@ -389,63 +270,15 @@ const initProjectChart = (projects: any[]) => {
   })
 }
 
-// 初始化待办事项图表
-const initTodoChart = () => {
-  if (!todoChart.value) return
-  
-  todoChartInstance.value = new Chart(todoChart.value, {
-    type: 'doughnut',
-    data: {
-      labels: ['已完成', '待完成'],
-      datasets: [
-        {
-          data: [todoStats.value.completed, todoStats.value.pending],
-          backgroundColor: ['#10b981', '#f59e0b'],
-          borderWidth: 0
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        }
-      },
-      cutout: '70%'
-    }
-  })
-}
-
-// 更新待办事项图表
-const updateTodoChart = () => {
-  if (!todoChartInstance.value) return
-  
-  todoChartInstance.value.data.datasets[0].data = [todoStats.value.completed, todoStats.value.pending]
-  todoChartInstance.value.update()
-}
-
-// 监听待办事项数据变化，更新图表
-watch(
-  () => [todoStats.value.pending, todoStats.value.completed],
-  () => {
-    updateTodoChart()
-  }
-)
-
 // 初始化数据
 onMounted(async () => {
   const projects = await fetchProjectStats()
-  await fetchTodoStats()
   await fetchTodayActivities()
-  await fetchFileStats()
   await fetchRecentUpdates()
   
   // 初始化图表
   setTimeout(() => {
     initProjectChart(projects)
-    initTodoChart()
   }, 100)
 })
 </script>
@@ -524,16 +357,6 @@ onMounted(async () => {
   box-shadow: 0 4px 15px rgba(168, 230, 207, 0.4);
 }
 
-/* 待办卡片 - 薰衣草紫 */
-.todo-card::before {
-  background: linear-gradient(90deg, #C3B1E1, #B19FD0);
-}
-
-.todo-card .stat-icon {
-  background: linear-gradient(135deg, #C3B1E1, #B19FD0);
-  box-shadow: 0 4px 15px rgba(195, 177, 225, 0.4);
-}
-
 /* 活动卡片 - 天蓝 */
 .activity-card::before {
   background: linear-gradient(90deg, #7EC8E3, #6BB8D3);
@@ -542,16 +365,6 @@ onMounted(async () => {
 .activity-card .stat-icon {
   background: linear-gradient(135deg, #7EC8E3, #6BB8D3);
   box-shadow: 0 4px 15px rgba(126, 200, 227, 0.4);
-}
-
-/* 文件卡片 - 珊瑚粉 */
-.file-card::before {
-  background: linear-gradient(90deg, #FF9A8B, #FFB7B2);
-}
-
-.file-card .stat-icon {
-  background: linear-gradient(135deg, #FF9A8B, #FFB7B2);
-  box-shadow: 0 4px 15px rgba(255, 154, 139, 0.4);
 }
 
 .stat-content {
@@ -637,6 +450,12 @@ onMounted(async () => {
   padding: 6px 12px;
   border-radius: 20px;
   font-weight: 500;
+}
+
+.chart-container.full-width {
+  grid-column: 1 / -1;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .chart-content {

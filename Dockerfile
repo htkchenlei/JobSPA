@@ -1,30 +1,22 @@
-# JobSPA - 全栈项目管理平台 Dockerfile
-# 优化版：跳过前端构建阶段，直接使用本地构建好的 dist 目录
+# JobSPA 应用镜像
+# 基于 jobspa-base:latest（需先构建基础镜像，构建一次即可复用）
 #
-# 使用前请确保已在前端目录执行过：pnpm run build (或 npm run build)
-# 这样 frontend/dist 目录会存在构建产物，Docker 直接复制即可
+# 首次部署：
+#   docker build -f Dockerfile.base -t jobspa-base:latest .
+#   docker-compose up -d --build
+#
+# 后续更新（业务代码改动，秒级完成）：
+#   docker-compose up -d --build
 
-# ==================== 单阶段构建: 后端运行 ====================
-FROM python:3.11-slim
+# ==================== 基于预构建的基础镜像 ====================
+FROM jobspa-base:latest
 
 WORKDIR /app
-
-# 安装系统依赖
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# 复制后端依赖文件（利用 Docker 缓存层，依赖不变时不会重新安装）
-COPY backend/requirements.txt ./
-
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 # 复制后端源码
 COPY backend/ ./
 
-# 直接复制本地构建好的前端产物（跳过前端构建阶段）
-# 请确保在构建镜像前已执行：cd frontend && pnpm run build
+# 复制前端构建产物
 COPY frontend/dist ./frontend/dist
 
 # 创建数据目录和上传目录
