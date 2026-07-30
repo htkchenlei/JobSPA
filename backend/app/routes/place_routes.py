@@ -6,9 +6,9 @@ from ..models.models import Project
 place_bp = Blueprint('place', __name__)
 
 # 获取china_regions.json文件的路径
-# 使用相对路径，确保在Docker容器中也能正确读取
 import os
 REGIONS_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'china_regions.json')
+
 
 # 全国省级行政区及简称（带简称）
 def get_provinces_with_shortname():
@@ -56,7 +56,6 @@ def get_places():
         
         return jsonify(result)
     except Exception as e:
-        print(f"获取地名数据时发生错误: {str(e)}")
         # 出错时返回空数据
         return jsonify({
             "provinces": [],

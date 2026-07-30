@@ -1,8 +1,25 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* 马卡龙撞色配色方案 */
+  --macaron-cream: #FFF9F5;        /* 奶油白 - 主背景 */
+  --macaron-mint: #A8E6CF;         /* 薄荷绿 */
+  --macaron-mint-dark: #88D8B0;    /* 薄荷绿深 */
+  --macaron-coral: #FF9A8B;        /* 珊瑚粉 */
+  --macaron-coral-dark: #FF8A7A;   /* 珊瑚粉深 */
+  --macaron-sky: #7EC8E3;          /* 天蓝 */
+  --macaron-sky-dark: #6BB8D3;     /* 天蓝深 */
+  --macaron-lavender: #C3B1E1;     /* 薰衣草紫 */
+  --macaron-lavender-dark: #B19FD0; /* 薰衣草紫深 */
+  --macaron-peach: #FFB7B2;        /* 蜜桃粉 */
+  --macaron-lemon: #FFEAA7;        /* 柠檬黄 */
+  --macaron-text: #5D5A6D;         /* 主文字色 - 柔和深紫 */
+  --macaron-text-light: #8B8899;   /* 次要文字 */
+  --macaron-border: #F0E6E3;       /* 边框色 */
+  --macaron-shadow: rgba(168, 230, 207, 0.3); /* 阴影色 */
+  --macaron-card-bg: #FFFFFF;      /* 卡片背景 */
 
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,8 +35,8 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f5f5f5;
-  color: #333;
+  background: linear-gradient(135deg, var(--macaron-cream) 0%, #FFF5EE 100%);
+  color: var(--macaron-text);
 }
 
 #app {
@@ -30,20 +47,211 @@ body {
 
 a {
   text-decoration: none;
+  color: inherit;
 }
 
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--macaron-text);
 }
 
 button {
   cursor: pointer;
-}
-
-/* 移除默认的按钮样式，让组件中的按钮样式生效 */
-button {
   border: none;
   font-family: inherit;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* 通用按钮样式 */
+.btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--macaron-coral) 0%, var(--macaron-peach) 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--macaron-coral-dark) 0%, var(--macaron-coral) 100%);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--macaron-lavender) 0%, #D4C4F0 100%);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, var(--macaron-lavender-dark) 0%, var(--macaron-lavender) 100%);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--macaron-mint) 0%, var(--macaron-mint-dark) 100%);
+  color: white;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, var(--macaron-mint-dark) 0%, #78D0B0 100%);
+}
+
+.btn-info {
+  background: linear-gradient(135deg, var(--macaron-sky) 0%, var(--macaron-sky-dark) 100%);
+  color: white;
+}
+
+.btn-info:hover {
+  background: linear-gradient(135deg, var(--macaron-sky-dark) 0%, #5BA8C3 100%);
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+/* 表单控件样式 */
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--macaron-border);
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+  color: var(--macaron-text);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--macaron-mint);
+  box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.3);
+}
+
+.form-control::placeholder {
+  color: var(--macaron-text-light);
+}
+
+/* 卡片样式 */
+.card {
+  background: var(--macaron-card-bg);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--macaron-border);
+  overflow: hidden;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--macaron-cream);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--macaron-mint) 0%, var(--macaron-mint-dark) 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--macaron-mint-dark) 0%, #70C8A8 100%);
+}
+
+/* 选择框美化 */
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235D5A6D' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+/* 输入框聚焦动画 */
+input:focus, select:focus, textarea:focus {
+  animation: inputGlow 0.3s ease;
+}
+
+@keyframes inputGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(168, 230, 207, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(168, 230, 207, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.3);
+  }
+}
+
+/* 标签样式 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 渐变背景动画 */
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 浮动动画 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* 淡入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease;
+}

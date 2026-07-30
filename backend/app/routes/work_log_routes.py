@@ -271,3 +271,43 @@ def get_today_activities():
     except Exception as e:
         print(f"获取今日活动记录失败: {e}")
         return jsonify({'error': '获取今日活动记录失败'}), 500
+
+# 获取指定日期的活动记录
+@bp.route('/date-activities/<string:log_date>', methods=['GET'])
+def get_date_activities(log_date):
+    try:
+        # 使用SQLAlchemy引擎直接执行SQL语句
+        from sqlalchemy import create_engine, text
+        from app import app
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+        
+        with engine.connect() as conn:
+            # 查询指定日期的项目更新
+            query = text(f"SELECT pp.project_id, p.name as project_name, pp.update_content FROM project_progress pp JOIN projects p ON pp.project_id = p.id WHERE pp.update_date = '{log_date}' ORDER BY pp.id DESC")
+            result = conn.execute(query)
+            date_updates = result.fetchall()
+            print(f"获取到 {len(date_updates)} 条 {log_date} 的项目更新记录")
+            
+            # 按项目分组构建活动记录
+            project_activities = {}
+            for update in date_updates:
+                project_name = update[1]
+                if project_name not in project_activities:
+                    project_activities[project_name] = []
+                project_activities[project_name].append(update[2])
+            
+            # 构建最终的活动记录列表
+            activities = []
+            for project_name, updates in project_activities.items():
+                if len(updates) == 1:
+                    activities.append(f"{project_name}: {updates[0]}")
+                else:
+                    activity_str = f"{project_name}:"
+                    for update in updates:
+                        activity_str += f"\n- {update}"
+                    activities.append(activity_str)
+            
+            return jsonify(activities), 200
+    except Exception as e:
+        print(f"获取指定日期活动记录失败: {e}")
+        return jsonify({'error': '获取指定日期活动记录失败'}), 500

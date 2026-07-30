@@ -1,0 +1,69 @@
+# 依赖目录（镜像内会自己安装，不需要这些）
+frontend/node_modules
+backend/__pycache__
+backend/**/__pycache__
+backend/venv
+backend/.venv
+backend/env
+
+# 版本控制
+.git
+.gitignore
+.gitattributes
+
+# IDE 配置
+.vscode
+.idea
+*.swp
+*.swo
+
+# 日志文件
+*.log
+logs/
+
+# 数据库文件（通过 volume 挂载，不放进镜像）
+backend/*.db
+backend/*.sqlite3
+backend/*.sqlite
+data/
+*.db
+*.sqlite3
+
+# 上传的文件（通过 volume 挂载）
+uploads/
+
+# 文档和说明文件（运行时不需要）
+README.md
+*.md
+docs/
+
+# 测试文件
+tests/
+test_*.py
+*_test.py
+
+# 构建缓存
+.docker
+*.tmp
+*.temp
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 前端源码（只需要 dist 目录，不需要源码进入镜像）
+frontend/src
+frontend/public
+frontend/index.html
+frontend/vite.config.ts
+frontend/tsconfig.json
+frontend/tsconfig.node.json
+frontend/package.json
+frontend/pnpm-lock.yaml
+frontend/.gitignore
+
+# 环境变量文件（敏感信息）
+.env
+.env.local
+.env.*.local

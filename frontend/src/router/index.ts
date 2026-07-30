@@ -17,7 +17,8 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/dashboard'
+          redirect: '/dashboard',
+          meta: { requiresAuth: true }
         },
         {
           path: 'dashboard',
@@ -40,17 +41,6 @@ const router = createRouter({
           component: () => import('../views/Statistics.vue')
         },
         {
-          path: 'todos',
-          name: 'todos',
-          component: () => import('../views/Todos.vue')
-        },
-        {
-          path: 'file-management',
-          name: 'fileManagement',
-          component: () => import('../views/FileManagement.vue')
-        },
-
-        {
           path: 'settings',
           name: 'settings',
           component: () => import('../views/Settings.vue')
@@ -60,13 +50,14 @@ const router = createRouter({
           name: 'workLog',
           component: () => import('../views/WorkLog.vue')
         },
-        {
-          path: 'bid-tool',
-          name: 'bidTool',
-          component: () => import('../views/BidTool.vue')
-        },
 
       ]
+    },
+    {
+      path: '/api-documentation',
+      name: 'apiDocumentation',
+      component: () => import('../views/ApiDocumentation.vue'),
+      meta: { requiresAuth: false }
     }
   ]
 })

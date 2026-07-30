@@ -35,11 +35,13 @@
         <div class="add-todo-form">
           <h5>添加新待办</h5>
           <form @submit.prevent="addNewTodo">
-            <div class="form-group">
-              <textarea v-model="newTodoItem" placeholder="输入待办事项描述" class="form-control" rows="3" required></textarea>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary">添加</button>
+            <div class="form-row">
+              <div class="form-group">
+                <textarea v-model="newTodoItem" placeholder="输入待办事项描述" class="form-control" rows="3" required></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">添加</button>
+              </div>
             </div>
           </form>
         </div>
@@ -292,11 +294,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 待办事项页面 - 马卡龙风格 */
 .todos {
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
   height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
@@ -304,12 +307,15 @@ onMounted(async () => {
 
 .todos h3 {
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #5D5A6D;
 }
 
 .todos-container {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   flex: 1;
   overflow: hidden;
 }
@@ -318,75 +324,105 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
   overflow: hidden;
-  background-color: #f8f9fa;
 }
 
 .todo-column h4 {
   margin: 0;
-  padding: 15px;
-  background-color: #e9ecef;
-  border-bottom: 1px solid #dee2e6;
+  padding: 20px 24px;
   font-size: 16px;
   font-weight: 600;
+  color: #5D5A6D;
+  border-bottom: 1px solid #F0E6E3;
 }
 
 /* 左侧待办事项 */
 .pending-column {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+}
+
+.pending-column::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #A8E6CF, #7DD3C0);
+  border-radius: 20px 20px 0 0;
+}
+
+.pending-column h4 {
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.15), rgba(168, 230, 207, 0.05));
 }
 
 .pending-list {
   flex: 0 0 60%;
-  padding: 15px;
+  padding: 20px;
   overflow-y: auto;
 }
 
 .add-todo-form {
-  flex: 0 0 50%;
-  padding: 15px;
-  border-top: 1px solid #e9ecef;
-  background-color: #ffffff;
+  padding: 20px;
+  border-top: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.05), rgba(255, 154, 139, 0.05));
   display: flex;
   flex-direction: column;
   min-height: 200px;
+  flex: 0 0 40%;
 }
 
 .add-todo-form form {
   display: flex;
   flex-direction: column;
-  flex: 1;
 }
 
 .add-todo-form h5 {
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   font-size: 14px;
   font-weight: 600;
+  color: #5D5A6D;
 }
 
 /* 右侧已完成事项 */
 .completed-column {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+}
+
+.completed-column::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #C3B1E1, #B19FD0);
+  border-radius: 20px 20px 0 0;
+}
+
+.completed-column h4 {
+  background: linear-gradient(90deg, rgba(195, 177, 225, 0.15), rgba(195, 177, 225, 0.05));
 }
 
 .completed-list {
   flex: 1;
-  padding: 15px;
+  padding: 20px;
   overflow-y: auto;
 }
 
 .empty-state {
   text-align: center;
-  padding: 30px;
-  color: #6c757d;
-  background-color: #ffffff;
-  border-radius: 4px;
-  border: 1px solid #e9ecef;
+  padding: 40px 20px;
+  color: #8B8899;
+  background: linear-gradient(135deg, rgba(168, 230, 207, 0.05), rgba(195, 177, 225, 0.05));
+  border-radius: 16px;
+  border: 2px dashed #F0E6E3;
+  font-size: 14px;
 }
 
 .todo-items {
@@ -399,27 +435,31 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 15px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  margin-bottom: 10px;
-  background-color: #ffffff;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: white;
+  border: 1px solid #F0E6E3;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .todo-item:hover {
-  background-color: #f8f9fa;
+  transform: translateX(4px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  border-color: #A8E6CF;
 }
 
 .todo-content {
   flex: 1;
   display: flex;
   align-items: flex-start;
-  gap: 15px;
+  gap: 14px;
 }
 
 .todo-content input[type="checkbox"] {
-  margin-top: 5px;
+  margin-top: 4px;
   transform: scale(1.2);
+  accent-color: #A8E6CF;
 }
 
 .todo-info {
@@ -428,92 +468,122 @@ onMounted(async () => {
 
 .todo-title {
   font-weight: 500;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
+  color: #5D5A6D;
 }
 
 .todo-description {
-  color: #6c757d;
-  font-size: 14px;
-  margin-bottom: 10px;
+  color: #8B8899;
+  font-size: 13px;
+  margin-bottom: 8px;
 }
 
 .todo-meta {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   font-size: 12px;
-  color: #6c757d;
+  color: #8B8899;
   flex-wrap: wrap;
 }
 
 .todo-priority {
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
   font-weight: 500;
+  font-size: 11px;
 }
 
 .todo-priority.low {
-  background-color: #d4edda;
-  color: #155724;
+  background: linear-gradient(135deg, #A8E6CF, #7DD3C0);
+  color: white;
 }
 
 .todo-priority.medium {
-  background-color: #fff3cd;
-  color: #856404;
+  background: linear-gradient(135deg, #FFEAA7, #FDCB6E);
+  color: #5D5A6D;
 }
 
 .todo-priority.high {
-  background-color: #f8d7da;
-  color: #721c24;
+  background: linear-gradient(135deg, #FF9A8B, #FFB7B2);
+  color: white;
 }
 
 .todo-actions {
   display: flex;
-  gap: 5px;
+  gap: 8px;
 }
 
 .todo-items.completed .todo-item {
-  background-color: #e7f3ff;
+  background: linear-gradient(135deg, rgba(195, 177, 225, 0.1), rgba(195, 177, 225, 0.05));
   opacity: 0.8;
 }
 
 .todo-items.completed .todo-title {
   text-decoration: line-through;
+  color: #8B8899;
 }
 
 .todo-completed-date {
   font-size: 12px;
-  color: #6c757d;
+  color: #C3B1E1;
 }
 
 /* 表单样式 */
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-control {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  padding: 12px 14px;
+  border: 2px solid #F0E6E3;
+  border-radius: 12px;
   font-size: 14px;
   box-sizing: border-box;
+  transition: all 0.3s ease;
+  background: white;
+  color: #5D5A6D;
+  flex: 1;
+  resize: none;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #A8E6CF;
+  box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.2);
+}
+
+.form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.form-group {
+  flex: 1;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 10px;
   flex-shrink: 0;
+  min-height: 40px;
 }
 
-/* 弹窗样式 */
+/* 弹窗样式 - 马卡龙风格 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(93, 90, 109, 0.3);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -521,98 +591,98 @@ onMounted(async () => {
 }
 
 .modal {
-  background-color: white;
-  border-radius: 8px;
+  background: white;
+  border-radius: 20px;
   width: 400px;
   max-width: 90%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 1px solid #F0E6E3;
+  overflow: hidden;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #e9ecef;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.1), rgba(195, 177, 225, 0.1));
 }
 
 .modal-header h4 {
   margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #5D5A6D;
 }
 
 .close-btn {
-  background: none;
+  background: rgba(255, 154, 139, 0.1);
   border: none;
-  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
+  font-size: 20px;
+  color: #FF9A8B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 154, 139, 0.2);
+  transform: rotate(90deg);
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 .modal-body .form-group label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #5D5A6D;
+  font-size: 13px;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 15px 20px;
-  border-top: 1px solid #e9ecef;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.05), rgba(195, 177, 225, 0.05));
 }
 
-/* 按钮样式 */
+/* 按钮样式 - 使用全局马卡龙样式 */
 .btn {
   padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
   font-size: 14px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: #3498db;
   color: white;
-}
-
-.btn-info {
-  background-color: #17a2b8;
-  color: white;
-}
-
-.btn-danger {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-sm {
-  padding: 4px 8px;
-  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
 }
 
 .btn-primary:hover {
-  background-color: #0069d9;
+  background-color: #2980b9;
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
 }
 
-.btn-info:hover {
-  background-color: #138496;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-}
-
-.btn-secondary:hover {
-  background-color: #5a6268;
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 10px;
 }
 
 /* 响应式布局 */

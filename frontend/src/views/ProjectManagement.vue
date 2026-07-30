@@ -193,7 +193,7 @@
             <div class="form-row">
               <div class="form-group col-md-6">
                 <label>所有者</label>
-                <input type="text" v-model="formData.owner" class="form-control" disabled>
+                <input type="text" v-model="formData.owner" class="form-control">
               </div>
               <div class="form-group col-md-6">
                 <label>省份</label>
@@ -251,11 +251,6 @@
           <!-- 历史更新记录 -->
           <div class="mt-4">
             <h5>历史更新记录</h5>
-            <div class="debug-info" style="font-size: 12px; color: #666; margin-bottom: 10px;">
-              记录数量: {{ currentProjectProgress.length }}
-              <br>
-              记录内容: {{ JSON.stringify(currentProjectProgress) }}
-            </div>
             <div v-if="currentProjectProgress && currentProjectProgress.length > 0">
               <div class="progress-item" v-for="(progress, index) in currentProjectProgress" :key="index" :class="{ 'important-progress': progress.is_important === 1 }">
                 <div class="progress-content">
@@ -317,7 +312,7 @@
               </div>
               <div class="form-group col-md-6">
                 <label>所有者</label>
-                <input type="text" v-model="formData.owner_username" class="form-control" disabled>
+                <input type="text" v-model="formData.owner_username" class="form-control">
               </div>
             </div>
             <div class="form-row">
@@ -515,25 +510,40 @@ const getLatestUpdateDateTime = (projectId) => {
 const fetchProjectProgress = async (projectId) => {
   try {
     console.log(`开始获取项目${projectId}的进度记录`)
+    
+    // 直接调用API获取项目进度记录
     const response = await fetch(`/api/projects/${projectId}/progress`)
-    console.log(`获取项目${projectId}进度的响应状态:`, response.status)
+    
+    if (!response.ok) {
+      console.error(`获取项目${projectId}进度失败:`, response.status)
+      projectProgresses.value[projectId] = []
+      return
+    }
+    
     const data = await response.json()
     console.log(`获取到项目${projectId}的进度记录数量:`, data.length)
     console.log(`获取到的进度记录:`, data)
-    // 按照日期和时间倒序排序，最近的更新在最上面
-    data.sort((a, b) => {
-      // 先比较日期
-      const dateA = new Date(a.update_date)
-      const dateB = new Date(b.update_date)
-      if (dateA.getTime() !== dateB.getTime()) {
-        return dateB.getTime() - dateA.getTime()
-      }
-      // 日期相同，比较时间
-      const timeA = new Date(`2000-01-01 ${a.update_time}`)
-      const timeB = new Date(`2000-01-01 ${b.update_time}`)
-      return timeB.getTime() - timeA.getTime()
-    })
-    projectProgresses.value[projectId] = data
+    
+    // 确保data是一个数组
+    if (Array.isArray(data)) {
+      // 按照日期和时间倒序排序，最近的更新在最上面
+      const sortedProgress = [...data].sort((a, b) => {
+        // 先比较日期
+        const dateA = new Date(a.update_date)
+        const dateB = new Date(b.update_date)
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateB.getTime() - dateA.getTime()
+        }
+        // 日期相同，比较时间
+        const timeA = new Date(`2000-01-01 ${a.update_time}`)
+        const timeB = new Date(`2000-01-01 ${b.update_time}`)
+        return timeB.getTime() - timeA.getTime()
+      })
+      projectProgresses.value[projectId] = sortedProgress
+    } else {
+      console.error(`项目${projectId}的进度记录不是数组:`, data)
+      projectProgresses.value[projectId] = []
+    }
     console.log(`更新后projectProgresses[${projectId}]:`, projectProgresses.value[projectId])
   } catch (error) {
     console.error(`获取项目${projectId}进度失败:`, error)
@@ -695,7 +705,17 @@ const saveProject = async () => {
           const newValue = projectData[field]
           console.log(`${label}: 旧值="${oldValue || '空'}", 新值="${newValue || '空'}", 是否不同: ${oldValue !== newValue}`)
           if (oldValue !== newValue) {
-            changes.push(`${label}由"${oldValue || '空'}"变更为"${newValue || '空'}"`)
+            // 对于项目阶段，将数字转换为阶段名称
+            if (field === 'stage') {
+              // 确保使用数字作为键来查找STAGE_MAP
+              const oldStageKey = parseInt(String(oldValue))
+              const newStageKey = parseInt(String(newValue))
+              const oldStageName = STAGE_MAP[oldStageKey] || String(oldValue) || '空'
+              const newStageName = STAGE_MAP[newStageKey] || String(newValue) || '空'
+              changes.push(`${label}由"${oldStageName}"变更为"${newStageName}"`)
+            } else {
+              changes.push(`${label}由"${oldValue || '空'}"变更为"${newValue || '空'}"`)
+            }
           }
         }
       }
@@ -851,7 +871,7 @@ const saveProject = async () => {
         // 2. 添加项目进度记录
         // 获取当前登录用户ID
         let currentUserId = 1 // 默认值
-        const userStr = localStorage.getItem('user')
+        const userStr = sessionStorage.getItem('user')
         if (userStr) {
           try {
             const user = JSON.parse(userStr)
@@ -903,7 +923,7 @@ const confirmCloseModal = () => {
     district: ''
   }
   // 设置owner为当前登录用户
-  const userStr = localStorage.getItem('user')
+  const userStr = sessionStorage.getItem('user')
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
@@ -1191,7 +1211,7 @@ const openAddProjectModal = () => {
   }
   
   // 设置owner为当前登录用户
-  const userStr = localStorage.getItem('user')
+  const userStr = sessionStorage.getItem('user')
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
@@ -1212,41 +1232,59 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 项目管理页面 - 马卡龙风格 */
 .project-management {
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .project-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.project-header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #5D5A6D;
+  margin: 0;
 }
 
 .header-buttons {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
 }
 
 /* 项目分类标题 */
 .project-section-title {
-  margin: 20px 0 10px 0;
-  font-size: 18px;
+  margin: 24px 0 16px 0;
+  font-size: 16px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 8px;
-  text-align: center;
+  color: #8B8899;
+  padding-bottom: 12px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.project-section-title::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(180deg, #FF9A8B, #FFB7B2);
+  border-radius: 2px;
 }
 
 /* 卡片式布局 */
 .project-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 20px;
   grid-auto-rows: 1fr;
 }
@@ -1255,15 +1293,17 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+  border: 1px solid #F0E6E3;
 }
 
 .project-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 .project-card-body {
@@ -1274,66 +1314,58 @@ onMounted(async () => {
 
 .project-update {
   flex: 1;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
-/* 不同阶段的卡片底色 */
+/* 不同阶段的卡片边框颜色 - 马卡龙配色 */
 .project-card.stage-initial {
-  background-color: #e7f3ff;
-  border-left: 4px solid #0066cc;
+  border-left: 4px solid #7EC8E3;
+  background: linear-gradient(135deg, rgba(126, 200, 227, 0.05) 0%, white 100%);
 }
 
 .project-card.stage-approved {
-  background-color: #d4edda;
-  border-left: 4px solid #155724;
+  border-left: 4px solid #A8E6CF;
+  background: linear-gradient(135deg, rgba(168, 230, 207, 0.05) 0%, white 100%);
 }
 
 .project-card.stage-bidding {
-  background-color: #fff3cd;
-  border-left: 4px solid #856404;
+  border-left: 4px solid #FFEAA7;
+  background: linear-gradient(135deg, rgba(255, 234, 167, 0.1) 0%, white 100%);
 }
 
 .project-card.stage-awarded {
-  background-color: #e2f0d9;
-  border-left: 4px solid #388e3c;
+  border-left: 4px solid #FFB7B2;
+  background: linear-gradient(135deg, rgba(255, 183, 178, 0.05) 0%, white 100%);
 }
 
 .project-card.stage-completed {
-  background-color: #f3e5f5;
-  border-left: 4px solid #7b1fa2;
+  border-left: 4px solid #C3B1E1;
+  background: linear-gradient(135deg, rgba(195, 177, 225, 0.05) 0%, white 100%);
 }
 
 .project-card.stage-unknown {
-  background-color: #f8f9fa;
-  border-left: 4px solid #6c757d;
-}
-
-.project-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #D4C4F0;
+  background: white;
 }
 
 .project-card-header {
-  padding: 12px 15px;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  padding: 16px 20px;
+  border-bottom: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.08), rgba(255, 154, 139, 0.08));
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
 }
 
 .project-card-body {
-  padding: 15px;
-}
-
-.project-update {
-  margin-bottom: 15px;
+  padding: 20px;
 }
 
 .project-name {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: #5D5A6D;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1341,114 +1373,102 @@ onMounted(async () => {
 }
 
 .status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-/* 阶段状态样式 */
+/* 阶段状态样式 - 马卡龙配色 */
 .status-badge.stage-initial {
-  background-color: #e7f3ff;
-  color: #0066cc;
+  background: linear-gradient(135deg, #7EC8E3, #6BB8D3);
+  color: white;
 }
 
 .status-badge.stage-approved {
-  background-color: #d4edda;
-  color: #155724;
+  background: linear-gradient(135deg, #A8E6CF, #88D8B0);
+  color: white;
 }
 
 .status-badge.stage-bidding {
-  background-color: #fff3cd;
-  color: #856404;
+  background: linear-gradient(135deg, #FFEAA7, #FDCB6E);
+  color: #5D5A6D;
 }
 
 .status-badge.stage-awarded {
-  background-color: #e2f0d9;
-  color: #388e3c;
+  background: linear-gradient(135deg, #FFB7B2, #FF9A8B);
+  color: white;
 }
 
 .status-badge.stage-completed {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
+  background: linear-gradient(135deg, #C3B1E1, #B19FD0);
+  color: white;
 }
 
 .status-badge.stage-unknown {
-  background-color: #f8f9fa;
-  color: #6c757d;
-}
-
-.project-card-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+  background: #E8E0F0;
+  color: #8B8899;
 }
 
 .project-info {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .info-item {
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .info-item label {
   font-weight: 500;
-  color: #6c757d;
-  margin-right: 5px;
+  color: #8B8899;
+  margin-right: 8px;
 }
 
-.project-update {
-  flex: 1;
-  margin-bottom: 15px;
+.info-item span {
+  color: #5D5A6D;
 }
 
 .project-buttons {
-  margin-top: 15px;
+  margin-top: 16px;
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .project-update {
-  margin-top: 15px;
+  margin-top: 16px;
 }
 
 .project-update label {
   font-weight: 500;
-  color: #6c757d;
+  color: #8B8899;
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
+  font-size: 13px;
 }
 
 .update-content {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  max-height: 2.8em;
+  font-size: 13px;
+  line-height: 1.5;
+  max-height: 3em;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  color: #495057;
+  color: #5D5A6D;
 }
 
-.project-buttons {
-  margin-top: 15px;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-/* 弹窗样式 */
+/* 弹窗样式 - 马卡龙风格 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(93, 90, 109, 0.3);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1456,61 +1476,91 @@ onMounted(async () => {
 }
 
 .modal {
-  background-color: white;
-  border-radius: 8px;
+  background: white;
+  border-radius: 20px;
   width: 500px;
   max-width: 90%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 1px solid #F0E6E3;
+  overflow: hidden;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #e9ecef;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.1), rgba(255, 154, 139, 0.1));
 }
 
 .modal-header h4 {
   margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #5D5A6D;
 }
 
 .close-btn {
-  background: none;
+  background: rgba(255, 154, 139, 0.1);
   border: none;
-  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
+  font-size: 20px;
+  color: #FF9A8B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 154, 139, 0.2);
+  transform: rotate(90deg);
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #5D5A6D;
+  font-size: 13px;
 }
 
 .form-control {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  padding: 12px 14px;
+  border: 2px solid #F0E6E3;
+  border-radius: 12px;
   font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+  color: #5D5A6D;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #A8E6CF;
+  box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.2);
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 15px 20px;
-  border-top: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.05), rgba(255, 154, 139, 0.05));
 }
 
 /* 查看项目更新记录模态框样式 */
@@ -1524,54 +1574,62 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
-/* 项目更新记录样式 */
+/* 项目更新记录样式 - 马卡龙风格 */
 .progress-item {
-  margin-bottom: 15px;
-  padding: 15px;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  background-color: #f8f9fa;
+  margin-bottom: 12px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(168, 230, 207, 0.08), rgba(126, 200, 227, 0.05));
+  border: 1px solid #F0E6E3;
+  transition: all 0.3s ease;
+}
+
+.progress-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 /* 重要更新高亮显示 */
 .important-progress {
-  background-color: #fff3cd;
-  border-left: 4px solid #ffc107;
+  background: linear-gradient(135deg, rgba(255, 154, 139, 0.15), rgba(255, 183, 178, 0.1));
+  border-left: 4px solid #FF9A8B;
 }
 
 .important-progress .progress-content {
-  color: #721c24;
+  color: #D35D6E;
 }
 
 .progress-content {
   font-size: 14px;
-  line-height: 1.4;
-  color: #495057;
+  line-height: 1.5;
+  color: #5D5A6D;
 }
 
 .progress-meta {
   font-weight: 600;
-  color: #495057;
+  color: #8B8899;
+  font-size: 12px;
 }
 
 .important-progress .progress-meta {
-  color: #721c24;
+  color: #FF9A8B;
   font-weight: 700;
 }
 
 .progress-text {
-  color: #495057;
+  color: #5D5A6D;
+  margin-left: 4px;
 }
 
 .important-progress .progress-text {
-  color: #721c24;
+  color: #D35D6E;
   font-weight: 500;
 }
 
 .no-progress {
   text-align: center;
-  color: #6c757d;
-  padding: 20px;
+  color: #8B8899;
+  padding: 40px 20px;
   font-style: italic;
 }
 
@@ -1583,7 +1641,7 @@ onMounted(async () => {
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   padding: 0 10px;
   flex: 1;
   min-width: 200px;
@@ -1594,28 +1652,25 @@ onMounted(async () => {
   max-width: 50%;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 600;
+.form-group.col-md-12 {
+  flex: 0 0 100%;
+  max-width: 100%;
 }
 
-.form-control {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
+.form-group.col-md-4 {
+  flex: 0 0 33.33%;
+  max-width: 33.33%;
 }
 
 .form-check {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .form-check-input {
   margin-right: 8px;
+  accent-color: #A8E6CF;
 }
 
 /* 带勾选框的表单组 */
@@ -1629,6 +1684,12 @@ onMounted(async () => {
   right: 0;
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.checkbox-right .form-check-label {
+  font-size: 13px;
+  color: #8B8899;
 }
 
 .mb-4 {
@@ -1638,69 +1699,24 @@ onMounted(async () => {
 .mt-4 {
   margin-top: 20px;
 }
-/* 按钮样式 */
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
+
+.mb-6 {
+  margin-bottom: 28px;
 }
 
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-info {
-  background-color: #17a2b8;
-  color: white;
-}
-
-.btn-success {
-  background-color: #28a745;
-  color: white;
-}
-
-.btn-danger {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
+/* 按钮样式 - 使用全局马卡龙样式 */
 .btn-sm {
-  padding: 10px 25px;
-  font-size: 14px;
+  padding: 8px 20px;
+  font-size: 13px;
+  border-radius: 10px;
 }
 
-.btn-primary:hover {
-  background-color: #0069d9;
-}
-
-.btn-info:hover {
-  background-color: #138496;
-}
-
-.btn-success:hover {
-  background-color: #218838;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-}
-
-.btn-secondary:hover {
-  background-color: #5a6268;
-}
-
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .project-list {
-    grid-template-columns: 1fr;
-  }
+/* select 下拉框美化 */
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235D5A6D' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
 }
 </style>

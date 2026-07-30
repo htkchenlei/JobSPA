@@ -1,45 +1,69 @@
-# 依赖目录
+# Dependencies
 node_modules/
-backend/__pycache__/
-backend/app/__pycache__/
-backend/app/models/__pycache__/
-backend/app/routes/__pycache__/
-
-# 环境变量文件
-.env
-
-# 数据库文件
-*.db
-projectmanagement.db
-
-# 日志文件
-*.log
-
-# 编译产物
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
 dist/
 build/
+*.egg-info/
 
-# 编辑器文件
-.vscode/
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
 
-# 系统文件
+# OS
 .DS_Store
 Thumbs.db
 
-# 测试文件
-__pycache__/
-*.py[cod]
-*$py.class
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# 临时文件
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database data directory (keep structure, ignore data files)
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+!data/.gitkeep
+
+# Uploads (keep directory structure, ignore uploaded files)
+uploads/*
+!uploads/.gitkeep
+
+# Frontend build output
+frontend/dist/
+
+# Cache
+.cache/
+*.cache
+
+# Temporary files
+*.tmp
+*.temp
 tmp/
 temp/
 
-# 密钥文件
-*.ppk
-*.pem
-*.key
+# Backend uploads
+backend/uploads/*
+!backend/uploads/.gitkeep

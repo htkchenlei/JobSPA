@@ -28,6 +28,7 @@
           :class="{
             'today': isToday(day), 
             'has-log': hasLog(day),
+            'has-activities': hasActivities(day),
             'future-day': isFutureDay(day),
             'selected': day === selectedDate
           }"
@@ -35,6 +36,7 @@
         >
           {{ day }}
           <div v-if="isToday(day)" class="today-indicator"></div>
+          <div v-if="hasLog(day)" class="log-indicator"></div>
         </div>
             
             <!-- 下个月的日期 -->
@@ -54,7 +56,7 @@
       <div class="right-section">
         <!-- 活动记录 -->
         <div v-if="currentActivities.length > 0" class="prompt-content">
-          <h3>今日活动记录</h3>
+          <h3>{{ selectedDate ? (isToday(selectedDate) ? '今日活动记录' : `${currentYear}年${currentMonth + 1}月${selectedDate}日活动记录`) : '活动记录' }}</h3>
           <div class="prompt-section">
             <ul class="activities-list">
               <li v-for="(activity, index) in currentActivities" :key="index">{{ activity }}</li>
@@ -98,6 +100,9 @@ const generatedLog = ref<string | null>(null)
 const isGenerating = ref(false)
 const currentPrompt = ref('')
 const currentActivities = ref<string[]>([])
+
+// 存储每天的活动记录，格式：{ '2026-03-20': ['活动1', '活动2'] }
+const dailyActivities = ref<Record<string, string[]>>({})
 
 
 
@@ -187,6 +192,13 @@ const hasLog = (day: number) => {
   return workLogs.value.some(log => log.date === dateStr)
 }
 
+// 检查某一天是否有活动记录
+const hasActivities = (day: number) => {
+  const dateStr = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  const activities = dailyActivities.value[dateStr]
+  return activities && activities.length > 0
+}
+
 const selectDate = async (day: number) => {
   // 检查是否是今天或以前的日期
   const selectedDateObj = new Date(currentYear.value, currentMonth.value, day)
@@ -202,35 +214,135 @@ const selectDate = async (day: number) => {
   selectedLog.value = workLogs.value.find(log => log.date === dateStr) || null
   generatedLog.value = null
   
-  // 检查是否是今天
-  const isTodaySelected = isToday(day)
-  if (isTodaySelected) {
-    // 如果选择的是今天，自动获取并显示今天的活动记录
-    const activities = await getTodayActivities()
-    currentActivities.value = activities
-    
-    // 构建提示词但不显示，只在生成日志时使用
+  console.log(`选择日期: ${dateStr}`)
+  
+  // 从已加载的活动记录中获取当天的活动
+  let activities = dailyActivities.value[dateStr] || []
+  
+  // 如果没有活动记录，尝试从API获取
+  if (activities.length === 0) {
+    console.log(`从API获取${dateStr}的活动记录`)
+    activities = await getDateActivities(dateStr)
+    // 保存到dailyActivities中
     if (activities.length > 0) {
-      currentPrompt.value = `假设你是一位售前工程师，为了向公司展示项目进度和工作进度，请根据以下今天的活动记录，生成一份工作日志，字数不少于40字：\n${activities.join('\n')}`
+      dailyActivities.value[dateStr] = activities
     }
   } else {
-    // 不是今天，清空提示词和活动
+    console.log(`从本地获取${dateStr}的活动记录:`, activities)
+  }
+  
+  currentActivities.value = activities
+  
+  // 构建提示词但不显示，只在生成日志时使用
+  if (activities.length > 0) {
+    const isTodaySelected = isToday(day)
+    const datePrompt = isTodaySelected ? '今天' : dateStr
+    currentPrompt.value = `假设你是一位售前工程师，为了向公司展示项目进度和工作进度，请根据以下${datePrompt}的活动记录，生成一份工作日志，字数不少于40字：\n${activities.join('\n')}`
+  } else {
     currentPrompt.value = ''
-    currentActivities.value = []
+  }
+  
+  // 检查是否有该日期的工作日志
+  const log = workLogs.value.find(log => log.date === dateStr)
+  if (log && log.content) {
+    // 如果有日志，显示日志内容
+    selectedLog.value = log
   }
 }
 
-// 获取今天的活动
-const getTodayActivities = async () => {
+// 获取指定日期的活动
+const getDateActivities = async (dateStr: string) => {
   try {
-    // 调用后端API获取今天的项目更新信息
-    const response = await fetch('/api/work-log/today-activities')
+    // 调用后端API获取指定日期的项目更新信息
+    const response = await fetch(`/api/work-log/date-activities/${dateStr}`)
     const activities = await response.json()
     
     return activities
   } catch (error) {
     console.error('获取活动失败:', error)
     return []
+  }
+}
+
+// 获取今天的活动
+const getTodayActivities = async () => {
+  try {
+    // 获取今天的日期
+    const today = new Date()
+    const dateStr = today.toISOString().split('T')[0]
+    // 调用后端API获取今天的项目更新信息
+    const response = await fetch(`/api/work-log/date-activities/${dateStr}`)
+    const activities = await response.json()
+    
+    return activities
+  } catch (error) {
+    console.error('获取活动失败:', error)
+    return []
+  }
+}
+
+// 加载本月所有日期的活动记录和工作日志
+const loadMonthlyActivities = async () => {
+  try {
+    const today = new Date()
+    const currentYear = today.getFullYear()
+    const currentMonth = today.getMonth()
+    
+    // 本月第一天
+    const firstDay = new Date(currentYear, currentMonth, 1)
+    // 今天
+    const lastDay = new Date(currentYear, currentMonth, today.getDate())
+    
+    // 清空之前的活动记录
+    dailyActivities.value = {}
+    
+    // 遍历从本月1号到今天的所有日期
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0]
+      try {
+        // 调用后端API获取当天的项目更新信息
+        const response = await fetch(`/api/work-log/date-activities/${dateStr}`)
+        if (response.ok) {
+          const activities = await response.json()
+          if (activities && activities.length > 0) {
+            dailyActivities.value[dateStr] = activities
+          }
+        }
+      } catch (error) {
+        console.error(`获取${dateStr}的活动失败:`, error)
+      }
+    }
+    
+    console.log('加载的月度活动记录:', dailyActivities.value)
+    
+    // 加载所有工作日志
+    try {
+      // 获取当前登录用户ID
+      let currentUserId = 1 // 默认值
+      const userStr = sessionStorage.getItem('user')
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          currentUserId = user.id || 1
+        } catch (e) {
+          console.error('解析用户信息失败:', e)
+        }
+      }
+      
+      const logsResponse = await fetch(`/api/work-log/user/${currentUserId}`)
+      if (logsResponse.ok) {
+        const logsData = await logsResponse.json()
+        workLogs.value = logsData.map((log: any) => ({
+          date: log.log_date,
+          content: log.work_log_by_ai
+        }))
+        console.log('加载的工作日志:', workLogs.value)
+      }
+    } catch (error) {
+      console.error('加载工作日志失败:', error)
+    }
+  } catch (error) {
+    console.error('加载月度活动记录失败:', error)
   }
 }
 
@@ -409,6 +521,9 @@ onMounted(async () => {
       }
     }
     
+    // 加载本月所有日期的活动记录
+    await loadMonthlyActivities()
+    
     // 自动获取今天的活动记录
     const activities = await getTodayActivities()
     currentActivities.value = activities
@@ -453,22 +568,25 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 工作日志页面 - 马卡龙风格 */
 .work-log {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0;
 }
 
-h1 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 40px;
+.work-log h1 {
+  text-align: left;
+  color: #5D5A6D;
+  margin-bottom: 24px;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 /* 主内容布局 */
 .work-log-content {
   display: flex;
-  gap: 20px;
+  gap: 24px;
 }
 
 /* 左侧部分 */
@@ -487,52 +605,67 @@ h1 {
   gap: 20px;
 }
 
-/* 日历样式 */
+/* 日历样式 - 马卡龙风格 */
 .calendar-container {
-  background-color: white;
-  border-radius: 8px;
-  padding: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
   width: 100%;
+  position: relative;
+}
+
+.calendar-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #7EC8E3, #6BB8D3);
+  border-radius: 20px 20px 0 0;
 }
 
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .calendar-header h2 {
   margin: 0;
-  color: #333;
-  font-size: 14px;
+  color: #5D5A6D;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .calendar-header .btn {
-  padding: 4px 8px;
+  padding: 8px 14px;
   font-size: 12px;
+  border-radius: 10px;
 }
 
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-  margin-bottom: 3px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .weekday {
   text-align: center;
-  font-weight: bold;
-  color: #555;
-  padding: 3px;
-  font-size: 10px;
+  font-weight: 600;
+  color: #8B8899;
+  padding: 8px 4px;
+  font-size: 11px;
 }
 
 .calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  gap: 4px;
 }
 
 .calendar-day {
@@ -540,47 +673,69 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  font-size: 12px;
-  min-height: 30px;
-  max-height: 40px;
+  font-size: 13px;
+  min-height: 36px;
+  max-height: 46px;
+  color: #5D5A6D;
+  font-weight: 500;
 }
 
 .calendar-day:hover {
-  background-color: #f0f0f0;
+  background: linear-gradient(135deg, rgba(168, 230, 207, 0.3), rgba(168, 230, 207, 0.1));
+  transform: scale(1.05);
 }
 
 .calendar-day.other-month {
-  color: #ccc;
+  color: #D4C4F0;
 }
 
 .calendar-day.future-day {
-  color: #ccc;
+  color: #D4C4F0;
   cursor: not-allowed;
 }
 
 .calendar-day.future-day:hover {
-  background-color: transparent;
+  background: transparent;
+  transform: none;
 }
 
 .calendar-day.today {
-  background-color: #3498db;
+  background: linear-gradient(135deg, #7EC8E3, #6BB8D3);
   color: white;
-  font-weight: bold;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(126, 200, 227, 0.4);
 }
 
 .calendar-day.selected {
-  background-color: #9b59b6;
+  background: linear-gradient(135deg, #C3B1E1, #B19FD0);
   color: white;
-  font-weight: bold;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(195, 177, 225, 0.4);
 }
 
 .calendar-day.has-log {
-  background-color: #27ae60;
+  background: linear-gradient(135deg, #A8E6CF, #7DD3C0);
   color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(168, 230, 207, 0.4);
+}
+
+.calendar-day.has-activities {
+  background: linear-gradient(135deg, #F1F8F1, #E8F5E8);
+  color: #5D5A6D;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(168, 230, 207, 0.2);
+}
+
+.calendar-day.selected {
+  background: linear-gradient(135deg, #A78ED1, #9575C9);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(195, 177, 225, 0.5);
 }
 
 .today-indicator {
@@ -588,8 +743,20 @@ h1 {
   bottom: 4px;
   width: 6px;
   height: 6px;
-  background-color: #ff6b6b;
+  background-color: white;
   border-radius: 50%;
+  opacity: 0.8;
+}
+
+.log-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  background: linear-gradient(135deg, #FF9A8B, #FFB7B2);
+  border-radius: 50%;
+  opacity: 0.9;
 }
 
 /* 生成日志按钮 */
@@ -601,10 +768,23 @@ h1 {
 
 /* 日志内容 */
 .log-content {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  position: relative;
+}
+
+.log-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #FF9A8B, #FFB7B2);
+  border-radius: 20px 20px 0 0;
 }
 
 /* AI内容区域 */
@@ -616,32 +796,62 @@ h1 {
 
 /* 提示词内容 */
 .prompt-content {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  position: relative;
+}
+
+.prompt-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #A8E6CF, #C3B1E1);
+  border-radius: 20px 20px 0 0;
 }
 
 /* 空状态 */
 .empty-state {
-  background-color: white;
-  border-radius: 8px;
-  padding: 40px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  padding: 60px 40px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
   text-align: center;
-  color: #666;
+  color: #8B8899;
+  position: relative;
 }
 
-.log-content h3 {
-  color: #333;
+.empty-state::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #FFEAA7, #FDCB6E);
+  border-radius: 20px 20px 0 0;
+}
+
+.log-content h3,
+.prompt-content h3 {
+  color: #5D5A6D;
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .log-text {
-  line-height: 1.6;
-  color: #555;
+  line-height: 1.8;
+  color: #5D5A6D;
   white-space: pre-wrap;
+  font-size: 14px;
 }
 
 .log-actions {
@@ -651,16 +861,31 @@ h1 {
 
 /* 模型选择 */
 .model-selector {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  position: relative;
+}
+
+.model-selector::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #C3B1E1, #D4C4F0);
+  border-radius: 20px 20px 0 0;
 }
 
 .model-selector h3 {
-  color: #333;
+  color: #5D5A6D;
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .model-options {
@@ -671,57 +896,60 @@ h1 {
 .model-option {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   cursor: pointer;
+  color: #5D5A6D;
 }
 
-/* 按钮样式 */
+/* 按钮样式 - 马卡龙风格 */
 .btn {
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-primary {
-  background-color: #3498db;
+  background: linear-gradient(135deg, #A8E6CF, #7DD3C0);
   color: white;
-  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 12px rgba(168, 230, 207, 0.4);
 }
 
 .btn-primary:hover {
-  background-color: #2980b9;
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(168, 230, 207, 0.5);
 }
 
 .btn-secondary {
-  background-color: #95a5a6;
+  background: linear-gradient(135deg, #C3B1E1, #B19FD0);
   color: white;
-  box-shadow: 0 2px 4px rgba(149, 165, 166, 0.3);
+  box-shadow: 0 4px 12px rgba(195, 177, 225, 0.4);
 }
 
 .btn-secondary:hover {
-  background-color: #7f8c8d;
-  box-shadow: 0 4px 8px rgba(149, 165, 166, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(195, 177, 225, 0.5);
 }
 
 .btn:disabled {
-  background-color: #bdc3c7;
+  background: #D4C4F0;
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
-/* 弹窗样式 */
+/* 弹窗样式 - 马卡龙风格 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(93, 90, 109, 0.3);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -729,43 +957,54 @@ h1 {
 }
 
 .modal {
-  background-color: white;
-  border-radius: 8px;
+  background: white;
+  border-radius: 20px;
   width: 80%;
   max-width: 800px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 1px solid #F0E6E3;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e9ecef;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.1), rgba(195, 177, 225, 0.1));
 }
 
 .modal-header h3 {
   margin: 0;
-  color: #333;
+  color: #5D5A6D;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .close-btn {
-  background: none;
+  background: rgba(255, 154, 139, 0.1);
   border: none;
-  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
-  color: #6c757d;
-  transition: color 0.3s ease;
+  font-size: 20px;
+  color: #FF9A8B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
 }
 
 .close-btn:hover {
-  color: #333;
+  background: rgba(255, 154, 139, 0.2);
+  transform: rotate(90deg);
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 .prompt-section {
@@ -773,37 +1012,46 @@ h1 {
 }
 
 .prompt-section h4 {
-  margin: 0 0 10px 0;
-  color: #555;
+  margin: 0 0 12px 0;
+  color: #5D5A6D;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .activities-list {
-  list-style-type: disc;
-  padding-left: 20px;
+  list-style-type: none;
+  padding-left: 0;
   margin: 0;
 }
 
 .activities-list li {
-  margin-bottom: 8px;
-  color: #666;
-  line-height: 1.4;
+  margin-bottom: 12px;
+  color: #5D5A6D;
+  line-height: 1.6;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.1), rgba(195, 177, 225, 0.05));
+  border-radius: 12px;
+  border-left: 3px solid #A8E6CF;
+  font-size: 13px;
 }
 
 .prompt-text {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 4px;
-  border-left: 4px solid #3498db;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.1), rgba(195, 177, 225, 0.05));
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 3px solid #7EC8E3;
   font-family: monospace;
   white-space: pre-wrap;
-  line-height: 1.4;
-  color: #333;
+  line-height: 1.6;
+  color: #5D5A6D;
+  font-size: 13px;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  padding: 20px;
-  border-top: 1px solid #e9ecef;
+  padding: 20px 24px;
+  border-top: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.05), rgba(195, 177, 225, 0.05));
 }
 </style>

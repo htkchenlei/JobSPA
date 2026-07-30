@@ -10,6 +10,9 @@ from app import app, db
 # 导入模型
 from app.models.models import User, Project, ProjectProgress, LatestUpdate, Todo, WorkLog
 
+# 导入密码哈希工具
+from werkzeug.security import generate_password_hash
+
 # 创建应用上下文
 with app.app_context():
     try:
@@ -26,7 +29,8 @@ with app.app_context():
             print('数据库表结构创建成功！')
             
             # 创建默认用户
-            default_user = User(username='admin', password='123456', is_admin=True, is_enable=True)
+            hashed_password = generate_password_hash('123456')
+            default_user = User(username='admin', password=hashed_password, is_admin=True, is_enable=True)
             db.session.add(default_user)
             db.session.commit()
             print('默认用户创建成功：用户名=admin，密码=123456')

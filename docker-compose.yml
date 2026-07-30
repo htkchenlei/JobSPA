@@ -1,37 +1,37 @@
 version: '3.8'
 
 services:
-  backend:
+  jobspa:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: Dockerfile
+    image: jobspa:latest
+    container_name: jobspa
+    restart: unless-stopped
     ports:
-      - "15667:15667"
+      - "15667:5000"
     volumes:
-      # 使用NAS上的目录挂载，确保数据持久化
-      - /volume1/docker/JobSPA/data:/app/data
+      # 数据持久化 - 数据库文件
+      - ./data:/app/data
+      # 文件上传目录
+      - ./uploads:/app/uploads
     environment:
       - FLASK_ENV=production
-      - DATABASE_URL=sqlite:////app/data/projectmanagement.db  # 使用绝对路径
-    # 确保容器以root用户运行，避免权限问题
-    user: "root"
-    # 添加初始化命令，确保数据目录存在且权限正确
-    command: >
-      sh -c "mkdir -p /app/data && chmod 777 /app/data && python app.py"
-    networks:
-      - jobspa-network
+      - SECRET_KEY=${SECRET_KEY:-your_secret_key_change_me}
+      - DATABASE_URL=sqlite:////app/data/projectmanagement.db
+      # AI 配置 (可选)
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_API_URL=${DEEPSEEK_API_URL:-https://api.deepseek.com/v1/chat/completions}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    ports:
-      - "15668:80"
-    depends_on:
-      - backend
-    networks:
-      - jobspa-network
-
-networks:
-  jobspa-network:
-    driver: bridge
+# 如需使用外部网络，取消下面的注释
+# networks:
+#   default:
+#     external:
+#       name: your_network_name

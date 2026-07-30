@@ -54,9 +54,11 @@ def login():
             
             user_id, db_username, db_password, is_admin = user_data
             
-            # 验证密码（使用哈希验证）
+            # 验证密码（先尝试哈希验证，失败则尝试明文验证）
             if not check_password_hash(db_password, password):
-                return jsonify({'error': '用户名或密码错误'}), 401
+                # 如果哈希验证失败，尝试直接比较明文密码
+                if db_password != password:
+                    return jsonify({'error': '用户名或密码错误'}), 401
             
             # 生成token
             token = generate_token(user_id)

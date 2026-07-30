@@ -1,7 +1,14 @@
 from flask import Blueprint, request, jsonify
 from ..models.models import User, Project, ProjectProgress, LatestUpdate
 from .. import db
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
+
+# 东八区时间偏移量
+EAST_8_OFFSET = timedelta(hours=8)
+
+# 获取当前东八区时间
+def get_east_8_time():
+    return datetime.utcnow() + EAST_8_OFFSET
 
 # 创建蓝图
 bp = Blueprint('projects', __name__, url_prefix='/api/projects')
@@ -22,6 +29,36 @@ STAGE_MAP = {
     12: '已完成|转入项目实施',
     13: '已完成|项目结束'
 }
+
+# 获取最近的更新记录（从project_progress表获取）
+@bp.route('/latest-updates', methods=['GET'])
+def get_latest_updates():
+    from sqlalchemy import text
+    query = text("""
+        SELECT pp.id, pp.project_id, p.name as project_name, 
+               pp.update_content, pp.update_date, pp.update_time, pp.updated_by
+        FROM project_progress pp
+        JOIN projects p ON pp.project_id = p.id
+        WHERE p.is_deleted = 0
+        ORDER BY pp.update_date DESC, pp.update_time DESC
+        LIMIT 10
+    """)
+    
+    result = []
+    with db.engine.connect() as conn:
+        rows = conn.execute(query).fetchall()
+        for row in rows:
+            result.append({
+                'id': row.id,
+                'project_id': row.project_id,
+                'project_name': row.project_name,
+                'update_content': row.update_content,
+                'update_date': str(row.update_date),
+                'update_time': str(row.update_time).split('.')[0],
+                'updated_by': row.updated_by
+            })
+    
+    return jsonify(result), 200
 
 # 获取项目列表
 @bp.route('/', methods=['GET'])
@@ -133,45 +170,36 @@ def get_projects():
     
     return jsonify(result), 200
 
-# 测试路由
-@bp.route('/test', methods=['GET'])
-def test_route():
-    try:
-        print("测试路由被调用")
-        return jsonify({'message': '测试成功'}), 200
-    except Exception as e:
-        print(f"测试路由失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': '测试失败'}), 500
-
 # 获取项目进度历史
 @bp.route('/<int:id>/progress', methods=['GET'])
 def get_project_progress(id):
-    try:
-        print(f"获取项目{id}的进度历史")
-        # 使用SQLAlchemy ORM查询
-        progresses = ProjectProgress.query.filter_by(project_id=id).order_by(ProjectProgress.update_date.desc()).all()
-        
-        print(f"获取到{len(progresses)}条进度记录")
-        result = []
-        for progress in progresses:
-            result.append({
-                'id': progress.id,
-                'update_content': progress.update_content,
-                'update_date': progress.update_date.strftime('%Y-%m-%d'),
-                'update_time': progress.update_time.strftime('%H:%M:%S'),
-                'updated_by': progress.updated_by,
-                'is_important': progress.is_important
-            })
-        
-        print(f"返回{len(result)}条进度记录")
-        return jsonify(result), 200
-    except Exception as e:
-        print(f"获取项目进度失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': '获取项目进度失败'}), 500
+    print(f"获取项目{id}的进度历史")
+    
+    # 验证项目是否存在
+    project = Project.query.filter_by(id=id, is_deleted=False).first()
+    if not project:
+        return jsonify({'error': '项目不存在'}), 404
+    
+    # 从数据库查询该项目的所有进度记录，按日期和时间倒序排序
+    progresses = ProjectProgress.query.filter_by(project_id=id)\
+        .order_by(ProjectProgress.update_date.desc(), ProjectProgress.update_time.desc())\
+        .all()
+    
+    print(f"查询到 {len(progresses)} 条进度记录")
+    
+    result = []
+    for progress in progresses:
+        result.append({
+            'id': progress.id,
+            'project_id': progress.project_id,
+            'update_content': progress.update_content,
+            'update_date': progress.update_date.strftime('%Y-%m-%d') if progress.update_date else None,
+            'update_time': progress.update_time.strftime('%H:%M:%S') if progress.update_time else None,
+            'updated_by': progress.updated_by,
+            'is_important': progress.is_important
+        })
+    
+    return jsonify(result), 200
 
 # 获取单个项目
 @bp.route('/<int:id>', methods=['GET'])
@@ -193,6 +221,23 @@ def get_project(id):
     update_time = latest_update.update_time.strftime('%H:%M:%S') if (latest_update and latest_update.update_time) else '暂无更新'
     updated_by = latest_update.updated_by if latest_update else None
     
+    # 从数据库获取该项目的进度历史记录
+    progresses = ProjectProgress.query.filter_by(project_id=project.id)\
+        .order_by(ProjectProgress.update_date.desc(), ProjectProgress.update_time.desc())\
+        .all()
+    
+    progress_list = []
+    for progress in progresses:
+        progress_list.append({
+            'id': progress.id,
+            'project_id': progress.project_id,
+            'update_content': progress.update_content,
+            'update_date': progress.update_date.strftime('%Y-%m-%d') if progress.update_date else None,
+            'update_time': progress.update_time.strftime('%H:%M:%S') if progress.update_time else None,
+            'updated_by': progress.updated_by,
+            'is_important': progress.is_important
+        })
+    
     return jsonify({
         'id': project.id,
         'name': project.name,
@@ -212,7 +257,8 @@ def get_project(id):
             'date': update_date,
             'time': update_time,
             'by': updated_by
-        }
+        },
+        'progress': progress_list
     }), 200
 
 # 创建项目
@@ -345,9 +391,10 @@ def update_project_progress(id):
     if not data:
         return jsonify({'error': '缺少请求数据'}), 400
     
-    # 获取当前日期和时间
-    today = date.today()
-    now = datetime.now().time()
+    # 获取当前东八区日期和时间
+    east_8_now = get_east_8_time()
+    today = east_8_now.date()
+    now = east_8_now.time()
     
     # 创建进度记录
     new_progress = ProjectProgress(
@@ -518,33 +565,71 @@ def search_projects():
     
     return jsonify(result), 200
 
-# 获取今天的项目更新
+# 获取最近的项目更新（从project_progress表中取最近的记录）
+@bp.route('/recent-updates', methods=['GET'])
+def get_recent_updates():
+    import sqlite3
+    import os
+    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'projectmanagement.db')
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT pp.id, pp.project_id, p.name as project_name, 
+               pp.update_content, pp.update_date, pp.update_time, pp.updated_by
+        FROM project_progress pp
+        JOIN projects p ON pp.project_id = p.id
+        WHERE p.is_deleted = 0
+        ORDER BY pp.update_date DESC, pp.update_time DESC
+        LIMIT 10
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    result = []
+    for row in rows:
+        result.append({
+            'id': row[0],
+            'project_id': row[1],
+            'project_name': row[2],
+            'update_content': row[3],
+            'update_date': str(row[4]),
+            'update_time': str(row[5]).split('.')[0],
+            'updated_by': row[6]
+        })
+    
+    return jsonify(result), 200
+
 @bp.route('/today-updates', methods=['GET'])
 def get_today_updates():
-    from datetime import date
-    today = date.today()
+    import sqlite3
+    import os
+    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'projectmanagement.db')
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
     
-    # 从project_progress表中查询今天的更新，关联projects表获取项目名称
-    from sqlalchemy.orm import joinedload
+    cursor.execute("""
+        SELECT pp.id, pp.project_id, p.name as project_name, 
+               pp.update_content, pp.update_date, pp.update_time, pp.updated_by
+        FROM project_progress pp
+        JOIN projects p ON pp.project_id = p.id
+        WHERE p.is_deleted = 0
+        ORDER BY pp.update_date DESC, pp.update_time DESC
+        LIMIT 10
+    """)
+    rows = cursor.fetchall()
+    conn.close()
     
-    # 构建查询
-    updates = ProjectProgress.query\
-        .filter_by(update_date=today)\
-        .options(joinedload(ProjectProgress.project))\
-        .all()
-    
-    # 构建返回结果
     result = []
-    for update in updates:
-        if update.project and not update.project.is_deleted:
-            result.append({
-                'id': update.id,
-                'project_id': update.project_id,
-                'project_name': update.project.name,
-                'update_content': update.update_content,
-                'update_date': update.update_date.strftime('%Y-%m-%d'),
-                'update_time': update.update_time.strftime('%H:%M:%S'),
-                'updated_by': update.updated_by
-            })
+    for row in rows:
+        result.append({
+            'id': row[0],
+            'project_id': row[1],
+            'project_name': row[2],
+            'update_content': row[3],
+            'update_date': str(row[4]),
+            'update_time': str(row[5]).split('.')[0],
+            'updated_by': row[6]
+        })
     
     return jsonify(result), 200

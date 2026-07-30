@@ -44,9 +44,9 @@
         </div>
       </div>
       
-      <!-- 后期维护性检验趋势 -->
+      <!-- 项目完成金额统计 -->
       <div class="chart-card">
-        <h4>后期维护性检验趋势</h4>
+        <h4>项目完成金额统计</h4>
         <div class="chart">
           <canvas ref="maintenanceTrendChart"></canvas>
         </div>
@@ -435,7 +435,10 @@ const drawMonthlyTrendChart = (monthlyTrend) => {
       maintainAspectRatio: false,
       scales: {
         y: {
-          beginAtZero: true
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
         }
       }
     }
@@ -469,22 +472,54 @@ const drawScaleDistributionChart = (scaleDistribution) => {
   })
 }
 
-// 绘制后期维护性检验趋势折线图
-const drawMaintenanceTrendChart = () => {
+// 计算当年项目完成金额统计（阶段由1-8变为9-13的项目）
+const calculateCompletedAmountTrend = (projectData) => {
+  const currentYear = new Date().getFullYear()
+  const monthlyAmount = {}
+  
+  // 初始化当年1-12月
+  for (let month = 1; month <= 12; month++) {
+    monthlyAmount[`${currentYear}-${month.toString().padStart(2, '0')}`] = 0
+  }
+  
+  projectData.forEach(project => {
+    if (project.start_date && project.scale) {
+      const year = parseInt(project.start_date.substring(0, 4))
+      const month = project.start_date.substring(0, 7)
+      
+      // 只统计当年的数据
+      if (year === currentYear) {
+        const stageNum = parseInt(project.stage)
+        
+        // 阶段由1-8变为9-13（即已中标或已完成阶段）
+        if (stageNum >= 9 && stageNum <= 13) {
+          const amount = parseFloat(project.scale) || 0
+          monthlyAmount[month] = (monthlyAmount[month] || 0) + amount
+        }
+      }
+    }
+  })
+  
+  return monthlyAmount
+}
+
+// 绘制项目完成金额统计折线图
+const drawMaintenanceTrendChart = (completedAmountTrend) => {
   if (!maintenanceTrendChart.value) return
   
   const ctx = maintenanceTrendChart.value.getContext('2d')
   
-  // 模拟数据
-  const labels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-  const data = [5, 12, 8, 15, 10, 20, 18, 25, 22, 15, 18, 28]
+  const labels = Object.keys(completedAmountTrend).map(month => {
+    return `${parseInt(month.split('-')[1])}月`
+  })
+  const data = Object.values(completedAmountTrend)
   
   new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [{
-        label: '维护性检验数量',
+        label: '完成金额(万元)',
         data: data,
         borderColor: '#9966FF',
         backgroundColor: 'rgba(153, 102, 255, 0.2)',
@@ -497,7 +532,10 @@ const drawMaintenanceTrendChart = () => {
       maintainAspectRatio: false,
       scales: {
         y: {
-          beginAtZero: true
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
         }
       }
     }
@@ -515,6 +553,7 @@ onMounted(async () => {
   const stageCount = calculateStageCount(projectData)
   const monthlyTrend = calculateMonthlyTrend(projectData)
   const scaleDistribution = calculateScaleDistribution(projectData)
+  const completedAmountTrend = calculateCompletedAmountTrend(projectData)
   
   // 更新表格数据
   salesStatistics.value = calculateSalesStatistics(projectData)
@@ -526,43 +565,93 @@ onMounted(async () => {
   drawStageCountChart(stageCount)
   drawMonthlyTrendChart(monthlyTrend)
   drawScaleDistributionChart(scaleDistribution)
-  drawMaintenanceTrendChart()
+  drawMaintenanceTrendChart(completedAmountTrend)
 })
 </script>
 
 <style scoped>
+/* 统计分析页面 - 马卡龙风格 */
 .statistics {
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.statistics h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #5D5A6D;
+  margin-bottom: 24px;
 }
 
 .charts-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 .chart-card {
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 15px;
-  background-color: #f8f9fa;
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.chart-card:nth-child(1)::before {
+  background: linear-gradient(90deg, #A8E6CF, #7DD3C0);
+}
+
+.chart-card:nth-child(2)::before {
+  background: linear-gradient(90deg, #FF9A8B, #FFB7B2);
+}
+
+.chart-card:nth-child(3)::before {
+  background: linear-gradient(90deg, #7EC8E3, #6BB8D3);
+}
+
+.chart-card:nth-child(4)::before {
+  background: linear-gradient(90deg, #C3B1E1, #B19FD0);
+}
+
+.chart-card:nth-child(5)::before {
+  background: linear-gradient(90deg, #FFEAA7, #FDCB6E);
+}
+
+.chart-card:nth-child(6)::before {
+  background: linear-gradient(90deg, #D4C4F0, #C3B1E1);
+}
+
+.chart-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 .chart-card h4 {
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
-  text-align: center;
+  color: #5D5A6D;
+  text-align: left;
 }
 
 .chart {
-  height: 400px;
+  height: 380px;
 }
 
 .tables-container {
@@ -572,44 +661,71 @@ onMounted(async () => {
 }
 
 .table-card {
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 15px;
-  background-color: #f8f9fa;
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  position: relative;
+  overflow: hidden;
+}
+
+.table-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #A8E6CF, #C3B1E1);
 }
 
 .table-card h4 {
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
-  text-align: center;
+  color: #5D5A6D;
+  text-align: left;
 }
 
 .table-responsive {
   overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #F0E6E3;
 }
 
 .table {
   width: 100%;
   margin-bottom: 0;
+  border-collapse: collapse;
 }
 
 .table th,
 .table td {
-  padding: 8px;
+  padding: 14px 16px;
   text-align: left;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid #F0E6E3;
 }
 
 .table th {
-  background-color: #e9ecef;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.15), rgba(195, 177, 225, 0.1));
   font-weight: 600;
+  color: #5D5A6D;
+  font-size: 13px;
+}
+
+.table td {
+  color: #5D5A6D;
+  font-size: 13px;
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(168, 230, 207, 0.05);
+}
+
+.table-striped tbody tr:hover {
+  background-color: rgba(168, 230, 207, 0.1);
 }
 
 /* 响应式布局 */

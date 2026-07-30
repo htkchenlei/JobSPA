@@ -24,9 +24,9 @@ MODEL_CONFIGS = {
         'model': os.getenv('DEEPSEEK_MODEL', 'deepseek-chat')
     },
     'qwen': {
-        'url': os.getenv('QWEN_API_URL', 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation'),
+        'url': os.getenv('QWEN_API_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
         'api_key': os.getenv('QWEN_API_KEY', ''),
-        'model': os.getenv('QWEN_MODEL', 'qwen-turbo')
+        'model': os.getenv('QWEN_MODEL', 'qwen3.5-plus')
     },
     'doubao': {
         'url': os.getenv('DOUBAO_API_URL', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'),
@@ -109,11 +109,15 @@ def generate_text():
                 },
                 json={
                     'model': model_config['model'],
-                    'input': prompt,
-                    'parameters': {
-                        'max_tokens': max_tokens
-                    }
-                }
+                    'messages': [
+                        {
+                            'role': 'user',
+                            'content': prompt
+                        }
+                    ],
+                    'max_tokens': max_tokens
+                },
+                timeout=30
             )
             
             print(f"Qwen API响应状态码: {response.status_code}")
@@ -121,7 +125,7 @@ def generate_text():
             
             if response.status_code == 200:
                 result = response.json()
-                content = result['output']['text']
+                content = result['choices'][0]['message']['content']
                 return jsonify({'content': content}), 200
             else:
                 return jsonify({'error': f'API调用失败: {response.text}'}), 500

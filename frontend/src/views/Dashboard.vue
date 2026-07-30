@@ -102,7 +102,7 @@
     <div class="recent-activities">
       <div class="activities-header">
         <h3>最近活动</h3>
-        <button class="view-all-btn">查看全部</button>
+        <button class="view-all-btn" @click="goToProjectManagement">查看全部</button>
       </div>
       <div class="activities-list">
         <div v-if="recentActivities.length === 0" class="empty-state">
@@ -130,6 +130,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import Chart from 'chart.js/auto'
+import router from '../router'
 
 // 项目统计数据
 const projectStats = ref({
@@ -158,12 +159,7 @@ const fileStats = ref({
 const todayActivities = ref<string[]>([])
 
 // 最近活动
-const recentActivities = ref([
-  { id: 1, time: '2026-02-16 14:30', content: '更新了项目进度' },
-  { id: 2, time: '2026-02-16 13:15', content: '添加了新的待办事项' },
-  { id: 3, time: '2026-02-16 11:00', content: '生成了今日工作日志' },
-  { id: 4, time: '2026-02-16 10:00', content: '上传了新文件' }
-])
+const recentActivities = ref<any[]>([])
 
 // 图表引用
 const projectChart = ref<HTMLCanvasElement | null>(null)
@@ -286,6 +282,29 @@ const fetchFileStats = async () => {
     fileStats.value.total = 0
     fileStats.value.folders = 0
   }
+}
+
+// 获取最近更新记录
+const fetchRecentUpdates = async () => {
+    try {
+        const response = await fetch('/api/projects/latest-updates')
+        if (response.ok) {
+            const updates = await response.json()
+            recentActivities.value = updates.map((update: any) => ({
+                id: update.id,
+                time: update.update_date && update.update_time ? `${update.update_date} ${update.update_time}` : '未知时间',
+                content: `[${update.project_name}] ${update.update_content}`
+            }))
+        }
+    } catch (error) {
+        console.error('获取最近更新失败:', error)
+        recentActivities.value = []
+    }
+}
+
+// 跳转到项目管理页面
+const goToProjectManagement = () => {
+    router.push('/project-management')
 }
 
 // 初始化项目图表
@@ -421,6 +440,7 @@ onMounted(async () => {
   await fetchTodoStats()
   await fetchTodayActivities()
   await fetchFileStats()
+  await fetchRecentUpdates()
   
   // 初始化图表
   setTimeout(() => {
@@ -431,89 +451,107 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 自定义滚动条 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
-
-/* 仪表盘容器 */
+/* 仪表盘容器 - 马卡龙风格 */
 .dashboard {
-  padding: 20px;
-  background-color: #f5f5f5;
-  min-height: 100vh;
+  padding: 0;
+  min-height: 100%;
 }
 
 /* 页面标题 */
 .page-header {
-  margin-bottom: 30px;
+  margin-bottom: 28px;
+  animation: fadeIn 0.4s ease;
 }
 
 .page-header h1 {
-  font-size: 28px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10px;
+  font-size: 26px;
+  font-weight: 700;
+  color: #5D5A6D;
+  margin-bottom: 8px;
 }
 
 .page-header p {
-  font-size: 16px;
-  color: #666;
+  font-size: 15px;
+  color: #8B8899;
   margin: 0;
 }
 
-/* 统计卡片 */
+/* 统计卡片 - 马卡龙撞色 */
 .stats-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 .stat-card {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 20px 20px 0 0;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
-.project-card {
-  border-left: 4px solid #3b82f6;
+/* 项目卡片 - 薄荷绿 */
+.project-card::before {
+  background: linear-gradient(90deg, #A8E6CF, #7DD3C0);
 }
 
-.todo-card {
-  border-left: 4px solid #8b5cf6;
+.project-card .stat-icon {
+  background: linear-gradient(135deg, #A8E6CF, #7DD3C0);
+  box-shadow: 0 4px 15px rgba(168, 230, 207, 0.4);
 }
 
-.activity-card {
-  border-left: 4px solid #10b981;
+/* 待办卡片 - 薰衣草紫 */
+.todo-card::before {
+  background: linear-gradient(90deg, #C3B1E1, #B19FD0);
 }
 
-.file-card {
-  border-left: 4px solid #f59e0b;
+.todo-card .stat-icon {
+  background: linear-gradient(135deg, #C3B1E1, #B19FD0);
+  box-shadow: 0 4px 15px rgba(195, 177, 225, 0.4);
+}
+
+/* 活动卡片 - 天蓝 */
+.activity-card::before {
+  background: linear-gradient(90deg, #7EC8E3, #6BB8D3);
+}
+
+.activity-card .stat-icon {
+  background: linear-gradient(135deg, #7EC8E3, #6BB8D3);
+  box-shadow: 0 4px 15px rgba(126, 200, 227, 0.4);
+}
+
+/* 文件卡片 - 珊瑚粉 */
+.file-card::before {
+  background: linear-gradient(90deg, #FF9A8B, #FFB7B2);
+}
+
+.file-card .stat-icon {
+  background: linear-gradient(135deg, #FF9A8B, #FFB7B2);
+  box-shadow: 0 4px 15px rgba(255, 154, 139, 0.4);
 }
 
 .stat-content {
@@ -521,67 +559,61 @@ onMounted(async () => {
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 10px;
+  font-size: 13px;
+  color: #8B8899;
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #5D5A6D;
+  margin-bottom: 8px;
+  line-height: 1;
 }
 
 .stat-detail {
-  font-size: 14px;
-  color: #666;
+  font-size: 13px;
+  color: #8B8899;
   margin: 0;
 }
 
 .stat-detail span {
-  font-weight: bold;
+  font-weight: 600;
+  color: #5D5A6D;
 }
 
 .stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
 }
 
-.project-card .stat-icon {
-  background-color: #3b82f6;
-}
-
-.todo-card .stat-icon {
-  background-color: #8b5cf6;
-}
-
-.activity-card .stat-icon {
-  background-color: #10b981;
-}
-
-.file-card .stat-icon {
-  background-color: #f59e0b;
+.stat-icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 /* 图表区域 */
 .charts-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
   gap: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 .chart-container {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  animation: fadeIn 0.6s ease;
 }
 
 .chart-header {
@@ -593,14 +625,18 @@ onMounted(async () => {
 
 .chart-header h3 {
   font-size: 16px;
-  font-weight: bold;
-  color: #333;
+  font-weight: 600;
+  color: #5D5A6D;
   margin: 0;
 }
 
 .chart-period {
   font-size: 12px;
-  color: #666;
+  color: #8B8899;
+  background: linear-gradient(135deg, #FFF5EE, #FFF9F5);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 500;
 }
 
 .chart-content {
@@ -609,10 +645,12 @@ onMounted(async () => {
 
 /* 最近活动 */
 .recent-activities {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  animation: fadeIn 0.7s ease;
 }
 
 .activities-header {
@@ -624,35 +662,49 @@ onMounted(async () => {
 
 .activities-header h3 {
   font-size: 16px;
-  font-weight: bold;
-  color: #333;
+  font-weight: 600;
+  color: #5D5A6D;
   margin: 0;
 }
 
 .view-all-btn {
-  font-size: 12px;
-  color: #3b82f6;
-  background: none;
+  font-size: 13px;
+  color: #FF9A8B;
+  background: linear-gradient(135deg, rgba(255, 154, 139, 0.1), rgba(255, 183, 178, 0.1));
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .view-all-btn:hover {
-  text-decoration: underline;
+  background: linear-gradient(135deg, rgba(255, 154, 139, 0.2), rgba(255, 183, 178, 0.2));
+  transform: translateX(2px);
 }
 
 .activities-list {
-  max-height: 300px;
+  max-height: 320px;
   overflow-y: auto;
 }
 
 .activity-item {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 15px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #F0E6E3;
+  transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.1), transparent);
+  margin-left: -12px;
+  margin-right: -12px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 12px;
 }
 
 .activity-item:last-child {
@@ -662,15 +714,15 @@ onMounted(async () => {
 }
 
 .activity-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: #ebf5ff;
-  color: #3b82f6;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(168, 230, 207, 0.3), rgba(168, 230, 207, 0.1));
+  color: #7DD3C0;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 14px;
   flex-shrink: 0;
 }
 
@@ -680,14 +732,14 @@ onMounted(async () => {
 
 .activity-text {
   font-size: 14px;
-  color: #333;
-  margin-bottom: 5px;
+  color: #5D5A6D;
+  margin-bottom: 4px;
   font-weight: 500;
 }
 
 .activity-time {
   font-size: 12px;
-  color: #666;
+  color: #8B8899;
   margin: 0;
 }
 
@@ -696,32 +748,27 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 0;
-  color: #666;
+  padding: 60px 0;
+  color: #8B8899;
 }
 
 .empty-state svg {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   opacity: 0.5;
 }
 
 .empty-state p {
-  margin: 0;
   font-size: 14px;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .stats-cards {
-    grid-template-columns: 1fr;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  
-  .charts-section {
-    grid-template-columns: 1fr;
-  }
-  
-  .chart-content {
-    height: 200px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

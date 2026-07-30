@@ -555,42 +555,67 @@ const formatFileSize = (bytes) => {
 </script>
 
 <style scoped>
+/* 文件管理页面 - 马卡龙风格 */
 .file-management {
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .file-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.file-header h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #5D5A6D;
 }
 
 .header-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 .file-content {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   height: calc(100vh - 250px);
 }
 
 .file-tree {
   width: 300px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  padding: 15px;
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
   overflow-y: auto;
+  position: relative;
+}
+
+.file-tree::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #A8E6CF, #7DD3C0);
+  border-radius: 20px 20px 0 0;
 }
 
 .file-tree h4 {
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #5D5A6D;
 }
 
 .tree {
@@ -599,35 +624,39 @@ const formatFileSize = (bytes) => {
 }
 
 .tree-node {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .tree-node-content {
   display: flex;
   align-items: center;
-  padding: 8px;
-  border-radius: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .tree-node-content:hover {
-  background-color: #f8f9fa;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.2), rgba(168, 230, 207, 0.1));
 }
 
 .tree-icon {
   margin-right: 10px;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .tree-label {
   flex: 1;
+  font-size: 14px;
+  color: #5D5A6D;
+  font-weight: 500;
 }
 
 .tree-node-actions {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.3s ease;
 }
 
 .tree-node-content:hover .tree-node-actions {
@@ -635,62 +664,94 @@ const formatFileSize = (bytes) => {
 }
 
 .tree-action-btn {
-  background: none;
+  background: rgba(168, 230, 207, 0.2);
   border: none;
   cursor: pointer;
   font-size: 14px;
-  padding: 2px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.tree-action-btn:hover {
+  background: rgba(168, 230, 207, 0.4);
 }
 
 .tree-children {
   list-style: none;
-  padding-left: 25px;
-  margin-top: 5px;
+  padding-left: 28px;
+  margin-top: 4px;
 }
 
 .file-list {
   flex: 1;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  padding: 15px;
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
   overflow-y: auto;
+  position: relative;
+}
+
+.file-list::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #FF9A8B, #FFB7B2);
+  border-radius: 20px 20px 0 0;
 }
 
 .file-list h4 {
   margin-top: 0;
-  margin-bottom: 15px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #5D5A6D;
+  border-bottom: 1px solid #F0E6E3;
 }
 
 .empty-state {
   text-align: center;
-  padding: 50px;
-  color: #6c757d;
-  background-color: #f8f9fa;
-  border-radius: 4px;
+  padding: 60px 30px;
+  color: #8B8899;
+  background: linear-gradient(135deg, rgba(168, 230, 207, 0.05), rgba(255, 154, 139, 0.05));
+  border-radius: 16px;
+  border: 2px dashed #F0E6E3;
+  font-size: 14px;
 }
 
 .files {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
 }
 
 .file-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 15px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  background-color: #f8f9fa;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(168, 230, 207, 0.05), rgba(195, 177, 225, 0.05));
+  border: 1px solid #F0E6E3;
   text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  border-color: #A8E6CF;
 }
 
 .file-icon {
-  font-size: 32px;
-  margin-bottom: 10px;
+  font-size: 36px;
+  margin-bottom: 12px;
 }
 
 .file-info {
@@ -699,32 +760,38 @@ const formatFileSize = (bytes) => {
 }
 
 .file-name {
-  font-weight: 500;
-  margin-bottom: 5px;
+  font-weight: 600;
+  margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #5D5A6D;
+  font-size: 13px;
 }
 
 .file-meta {
-  font-size: 12px;
-  color: #6c757d;
+  font-size: 11px;
+  color: #8B8899;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
 }
 
 .file-actions {
-  margin-top: 10px;
+  margin-top: 12px;
   display: flex;
-  gap: 5px;
+  gap: 8px;
 }
 
-/* 弹窗样式 */
+/* 弹窗样式 - 马卡龙风格 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(93, 90, 109, 0.3);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -732,118 +799,97 @@ const formatFileSize = (bytes) => {
 }
 
 .modal {
-  background-color: white;
-  border-radius: 8px;
+  background: white;
+  border-radius: 20px;
   width: 400px;
   max-width: 90%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 1px solid #F0E6E3;
+  overflow: hidden;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #e9ecef;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.1), rgba(255, 154, 139, 0.1));
 }
 
 .modal-header h4 {
   margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #5D5A6D;
 }
 
 .close-btn {
-  background: none;
+  background: rgba(255, 154, 139, 0.1);
   border: none;
-  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
+  font-size: 20px;
+  color: #FF9A8B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 154, 139, 0.2);
+  transform: rotate(90deg);
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #5D5A6D;
+  font-size: 13px;
 }
 
 .form-control {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  padding: 12px 14px;
+  border: 2px solid #F0E6E3;
+  border-radius: 12px;
   font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+  color: #5D5A6D;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #A8E6CF;
+  box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.2);
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 15px 20px;
-  border-top: 1px solid #e9ecef;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.05), rgba(195, 177, 225, 0.05));
 }
 
-/* 按钮样式 */
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-success {
-  background-color: #28a745;
-  color: white;
-}
-
-.btn-info {
-  background-color: #17a2b8;
-  color: white;
-}
-
-.btn-danger {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
+/* 按钮样式 - 使用全局马卡龙样式 */
 .btn-sm {
-  padding: 4px 8px;
+  padding: 6px 14px;
   font-size: 12px;
-}
-
-.btn-primary:hover {
-  background-color: #0069d9;
-}
-
-.btn-success:hover {
-  background-color: #218838;
-}
-
-.btn-info:hover {
-  background-color: #138496;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-}
-
-.btn-secondary:hover {
-  background-color: #5a6268;
+  border-radius: 10px;
 }
 </style>

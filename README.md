@@ -1,217 +1,290 @@
-# JobSPA 项目说明
+# JobSPA - 项目管理平台
 
-## 项目简介
-JobSPA 是一个基于 Vue 3 和 Flask 开发的全栈单页应用，旨在提供一个综合性的项目管理和文件管理平台。该系统集成了仪表盘、项目管理、高级查询、统计分析、待办事项、文件管理和工作日志等功能，为用户提供一站式的工作管理解决方案。
+一个现代化的全栈项目管理平台，采用马卡龙撞色风格设计，帮助团队高效管理项目、待办事项和工作日志。
 
-## 主要功能
+## ✨ 功能特性
 
-- **仪表盘**：系统概览和关键指标展示，支持项目阶段统计图表
-- **项目管理**：管理项目信息和进度，支持项目更新和历史记录查看
-- **高级查询**：执行复杂的项目和数据查询
-- **统计分析**：提供数据可视化和统计报表
-- **待办事项**：个人任务管理和跟踪
-- **文件管理**：树形结构的文件和文件夹管理，支持创建文件夹、上传文件等操作
-- **工作日志**：自动记录日常活动，支持AI生成工作日志
-- **地名查询**：文档关键词检查工具，支持行政区划管理
-- **API文档**：系统API接口的详细文档
-- **用户管理**：支持用户登录、修改密码等功能
+### 📊 仪表盘
+- 项目统计概览（总数、进行中）
+- 待办事项完成率
+- 今日活动统计
+- 可视化图表展示
 
-## 技术栈
+### 📋 项目管理
+- 项目全生命周期管理（立项 → 招投标 → 已中标 → 已完成）
+- 项目进度历史记录
+- 项目分类展示
+- 快速筛选和搜索
+
+### 🔍 高级查询
+- 多条件组合查询
+- 按省份、阶段、规模筛选
+- 关键词搜索
+
+### 📈 统计分析
+- 各省份项目分布
+- 项目金额统计
+- 阶段分布分析
+- 月度趋势图
+
+### ✅ 待办事项
+- 待办事项管理
+- 完成状态追踪
+- 快速添加和编辑
+
+### 📁 文件管理
+- 文件夹层级管理
+- 文件上传下载
+- 支持多种文件格式
+
+### 📝 工作日志
+- 日历视图展示
+- AI 自动生成工作日志
+- 历史日志查看
+
+### 🌐 对外公开 API
+- 无需认证的公共接口
+- 支持按周/月/自定义范围查询项目更新
+- 在线 API 文档页面 (`/api-documentation`)
+
+### 🔧 投标工具
+- 投标项目跟踪
+- 投标进度管理
+
+## 🛠 技术栈
 
 ### 前端
-- **框架**：Vue 3 + Composition API
-- **语言**：TypeScript
-- **路由**：Vue Router 4
-- **构建工具**：Vite
-- **图表库**：Chart.js
+- **Vue 3** - 渐进式 JavaScript 框架
+- **TypeScript** - 类型安全
+- **Vite** - 快速构建工具
+- **Vue Router** - 路由管理
+- **Chart.js** - 图表可视化
+- **ECharts** - 高级图表
 
 ### 后端
-- **框架**：Flask 2.0.1
-- **数据库**：SQLite (内置，无需额外安装)
-- **ORM**：SQLAlchemy 1.4.32
-- **CORS**：Flask-CORS 3.0.10
-- **环境管理**：python-dotenv 0.19.2
-- **AI集成**：支持调用大模型API生成内容（如DeepSeek、Qwen、Doubao）
+- **Flask 2.0** - Python Web 框架
+- **SQLAlchemy** - ORM 数据库工具
+- **SQLite** - 轻量级数据库
+- **PyJWT** - 身份认证
 
-## 快速开始
+## 📁 项目结构
 
-### 1. 环境准备
+```
+JobSPA/
+├── frontend/                # 前端项目
+│   ├── src/
+│   │   ├── views/          # 页面组件
+│   │   ├── components/     # 通用组件
+│   │   ├── router/         # 路由配置
+│   │   └── style.css       # 全局样式
+│   ├── package.json
+│   └── vite.config.ts
+├── backend/                 # 后端项目
+│   ├── app/
+│   │   ├── routes/         # API 路由
+│   │   ├── models/         # 数据模型
+│   │   └── __init__.py     # Flask 应用
+│   ├── uploads/            # 文件上传目录
+│   ├── requirements.txt
+│   └── app.py              # 入口文件
+├── data/                    # 数据库目录 (Docker)
+├── uploads/                 # 上传目录 (Docker)
+├── Dockerfile              # Docker 构建文件
+├── docker-compose.yml      # Docker Compose 配置
+├── .env.example            # 环境变量示例
+└── README.md
+```
 
-- **前端**：Node.js 16+，npm 7+
-- **后端**：Python 3.8+，pip 20+
-- **数据库**：SQLite（内置，无需额外安装）
+## 🚀 快速开始
 
-### 2. 安装依赖
+### 方式一：Docker 部署（推荐）
 
-#### 前端依赖
+#### 1. 克隆项目
+```bash
+git clone https://github.com/htkchenlei/JobSPA.git
+cd JobSPA
+```
+
+#### 2. 创建环境变量文件
+```bash
+cp .env.example .env
+# 编辑 .env 文件，修改 SECRET_KEY 等配置
+```
+
+#### 3. 启动服务
+```bash
+# 构建并启动
+docker-compose up -d --build
+
+# 查看日志
+docker-compose logs -f
+```
+
+#### 4. 访问应用
+打开浏览器访问 `http://localhost:15667`
+
+#### 5. 停止服务
+```bash
+docker-compose down
+```
+
+### 方式二：本地开发
+
+#### 前端
 ```bash
 cd frontend
-npm install
+pnpm install
+pnpm dev
 ```
 
-#### 后端依赖
+#### 后端
 ```bash
 cd backend
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-```
-
-### 3. 配置环境变量
-
-在项目根目录创建 `.env` 文件，添加以下内容（根据需要修改）：
-
-```
-# 数据库配置
-DATABASE_URL=sqlite:///projectmanagement.db
-
-# JWT密钥
-SECRET_KEY=your_secret_key_here
-
-# AI API密钥（可选）
-DEEPSEEK_API_KEY=your_deepseek_api_key
-QWEN_API_KEY=your_qwen_api_key
-DOUBAO_API_KEY=your_doubao_api_key
-```
-
-### 4. 启动服务
-
-#### 启动后端服务
-```bash
-cd backend
 python app.py
 ```
-后端服务将运行在 `http://localhost:15667`
 
-#### 启动前端服务
-```bash
-cd frontend
-npm run dev
-```
-前端服务将运行在 `http://localhost:15668`
+## ⚙️ 配置说明
 
-### 5. 访问系统
+### 环境变量
 
-打开浏览器，访问 `http://localhost:15668`，即可进入 JobSPA 系统。
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `SECRET_KEY` | Flask 密钥 | `dev_secret_key` |
+| `DATABASE_URL` | 数据库连接 | SQLite |
+| `UPLOAD_FOLDER` | 文件上传目录 | `./uploads` |
+| `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | - |
 
-## 目录结构
+### 数据库
 
-### 前端结构
-```
-frontend/
-├── public/              # 静态资源
-├── src/
-│   ├── assets/          # 图片、样式等资源
-│   ├── components/      # 通用组件
-│   ├── router/          # 路由配置
-│   ├── views/           # 页面组件
-│   ├── App.vue          # 根组件
-│   ├── main.ts           # 入口文件
-│   └── style.css         # 全局样式
-├── package.json         # 项目配置和依赖
-├── tsconfig.json        # TypeScript 配置
-└── vite.config.ts       # Vite 配置
-```
+默认使用 SQLite，数据文件存储在 `data/projectmanagement.db`。
 
-### 后端结构
-```
-backend/
-├── app/
-│   ├── models/          # 数据模型
-│   ├── routes/          # API 路由
-│   │   ├── ai_routes.py           # AI相关API路由
-│   │   ├── auth_routes.py         # 认证相关API路由
-│   │   ├── excel_process_routes.py # Excel处理API路由
-│   │   ├── file_parse_routes.py    # 文件解析API路由
-│   │   ├── file_routes.py         # 文件管理API路由
-│   │   ├── place_routes.py         # 地名查询API路由
-│   │   ├── project_routes.py      # 项目管理API路由
-│   │   ├── todo_routes.py         # 待办事项API路由
-│   │   ├── user_routes.py         # 用户相关API路由
-│   │   └── work_log_routes.py     # 工作日志API路由
-│   └── __init__.py      # 应用初始化
-├── app.py               # 应用入口
-├── china_regions.json   # 行政区划数据
-├── requirements.txt     # Python 依赖
-└── projectmanagement.db # SQLite 数据库文件
-```
-
-## Docker部署
-
-### 1. 构建Docker镜像
-
-在项目根目录执行：
+如需使用其他数据库，修改 `DATABASE_URL`：
 
 ```bash
-docker-compose build
+# PostgreSQL
+DATABASE_URL=postgresql://user:password@localhost:5432/jobspa
+
+# MySQL
+DATABASE_URL=mysql+pymysql://user:password@localhost:3306/jobspa
 ```
 
-### 2. 启动Docker容器
+### NAS Docker 部署
 
+#### Synology NAS
+
+1. **通过 SSH 登录 NAS**
+```bash
+ssh admin@your-nas-ip
+```
+
+2. **创建项目目录**
+```bash
+mkdir -p /volume1/docker/JobSPA
+cd /volume1/docker/JobSPA
+```
+
+3. **上传项目文件**（使用 Git 或 SFTP）
+
+4. **修改 docker-compose.yml 中的卷挂载路径**
+```yaml
+volumes:
+  - ./data:/app/data
+  - ./uploads:/app/uploads
+```
+
+5. **启动服务**
 ```bash
 docker-compose up -d
 ```
 
-### 3. 访问系统
+#### 端口说明
 
-容器启动后，可通过以下地址访问：
-- 前端应用：`http://localhost:15668`
-- 后端API：`http://localhost:15667/api/`
+默认端口：`15667`，可在 `docker-compose.yml` 中修改：
 
-### 4. 数据持久化
+```yaml
+ports:
+  - "你的端口:5000"
+```
 
-- SQLite数据库文件存储在 `/volume1/docker/JobSPA/data` 目录
-- 确保该目录存在且权限正确
+## 👤 默认账户
 
-## 使用示例
+首次部署后，系统会自动创建默认账户：
 
-### 行政区划管理
+- **用户名**: `admin`
+- **密码**: `admin123`
 
-1. **访问地名查询**：点击侧边栏中的「地名查询」链接
-2. **行政区划管理**：在地名查询页面中切换到「行政区划管理」标签页
-3. **查看行政区划**：页面会显示省级、市级和区级行政区的列表
-4. **新增行政区**：点击「新增」按钮，在弹出的对话框中输入行政区名称
-5. **删除行政区**：鼠标悬停在行政区标签上，点击显示的删除按钮
+⚠️ **请登录后立即修改密码！**
 
-### 工作日志
+## 🎨 设计风格
 
-1. **查看工作日志**：点击侧边栏中的「工作日志」链接，进入工作日志页面
-2. **选择日期**：在日历中点击日期，查看或生成该日期的工作日志
-3. **生成今日活动**：系统会自动获取今日的活动记录
-4. **生成工作日志**：点击「生成今日日志」按钮，系统会调用AI生成工作日志
-5. **查看历史日志**：在日历中选择历史日期，查看已保存的工作日志
+采用马卡龙撞色风格设计，主要配色：
 
-### 修改密码
+| 颜色 | 用途 | 色值 |
+|------|------|------|
+| 🟢 薄荷绿 | 成功/完成 | `#A8E6CF` |
+| 🔴 珊瑚粉 | 警告/重要 | `#FF9A8B` |
+| 🔵 天蓝 | 信息/进行中 | `#7EC8E3` |
+| 🟣 薰衣草紫 | 次要/已完成 | `#C3B1E1` |
+| 🟡 奶油黄 | 提示/中等 | `#FFEAA7` |
 
-1. 点击页面右上角的用户名，在下拉菜单中选择「修改密码」
-2. 输入当前密码和新密码，点击保存按钮
+## 📝 开发指南
 
-## 常见问题
+### 🔗 对外公开 API（无需认证）
 
-### 1. 无法登录系统
-- 检查后端服务是否正常运行
-- 确认用户名和密码是否正确
-- 检查浏览器控制台是否有网络错误
+系统提供以下公开接口，方便外部系统获取项目更新数据：
 
-### 2. 行政区划管理没有数据
-- 检查 `china_regions.json` 文件是否存在
-- 确认后端服务是否正常启动
-- 检查浏览器控制台是否有错误信息
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/public/weekly-updates` | GET | 获取本周项目更新列表（上周六~当天） |
+| `/api/public/weekly-updates/count` | GET | 获取本周更新数量 |
+| `/api/public/monthly-updates` | GET | 获取当月项目更新列表（本月1号~当天） |
+| `/api/public/range-updates` | GET | 获取指定日期范围的项目更新（需传 `start_date` 和 `end_date`） |
 
-### 3. AI生成工作日志失败
-- 检查 `.env` 文件中是否配置了AI API密钥
-- 确认网络连接是否正常
-- 检查浏览器控制台是否有错误信息
+详细文档请访问：`http://your-domain/api-documentation`
 
-### 4. 登录后关闭浏览器再打开不需要重新登录
-- 系统使用 sessionStorage 存储token，关闭浏览器后会自动清除
-- 若仍出现此问题，请清除浏览器缓存后重试
+### API 文档
 
-## 注意事项
+主要 API 端点：
 
-- 系统使用 JWT 进行用户认证，token 存储在 sessionStorage 中，关闭浏览器后会自动清除
-- 文件管理功能会为每个用户创建独立的文件存储目录
-- SQLite数据库文件已添加到 `.gitignore`，不会被上传到版本控制系统
-- 生产环境部署时，建议修改 `SECRET_KEY` 为强随机值
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/auth/login` | POST | 用户登录 |
+| `/api/projects/` | GET | 获取项目列表 |
+| `/api/projects/<id>` | GET | 获取项目详情 |
+| `/api/projects/<id>/progress` | GET | 获取项目进度 |
+| `/api/todos/` | GET/POST | 待办事项管理 |
+| `/api/files/` | GET | 文件管理 |
+| `/api/work-log/` | GET/POST | 工作日志 |
 
-## 许可证
+### 数据库迁移
 
-MIT License
+```bash
+cd backend
+python init_db.py  # 初始化数据库
+```
+
+## 🤝 贡献指南
+
+1. Fork 本项目
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 提交 Pull Request
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+
+## 🙏 致谢
+
+- [Vue.js](https://vuejs.org/)
+- [Flask](https://flask.palletsprojects.com/)
+- [Chart.js](https://www.chartjs.org/)
+
+---
+
+**JobSPA** - 让项目管理更简单 💼
