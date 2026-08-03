@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from ..models.models import User, Project, ProjectProgress, LatestUpdate
 from .. import db
 from datetime import datetime, date, time, timedelta
+import os
+import jwt
 
 # 东八区时间偏移量
 EAST_8_OFFSET = timedelta(hours=8)
@@ -446,9 +448,31 @@ def update_project_progress(id):
         'message': '项目进度更新成功'
     }), 200
 
-# 删除项目（软删除）
+# 删除项目（软删除，仅admin）
 @bp.route('/<int:id>', methods=['DELETE'])
 def delete_project(id):
+    # 校验 admin 权限
+    token = request.headers.get('Authorization')
+    if not token:
+        return jsonify({'error': '缺少token'}), 401
+
+    # 移除Bearer前缀
+    if token.startswith('Bearer '):
+        token = token.split(' ')[1]
+
+    try:
+        payload = jwt.decode(token, os.getenv('SECRET_KEY', 'your-secret-key'), algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        if not user_id:
+            return jsonify({'error': '无效的token'}), 401
+        user = User.query.filter_by(id=user_id).first()
+        if not user or not user.is_admin:
+            return jsonify({'error': '无权限：仅管理员可删除项目'}), 403
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'token已过期'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': '无效的token'}), 401
+
     project = Project.query.filter_by(id=id, is_deleted=False).first()
     if not project:
         return jsonify({'error': '项目不存在'}), 404

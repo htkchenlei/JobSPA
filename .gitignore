@@ -47,6 +47,10 @@ data/*.sqlite
 data/*.sqlite3
 !data/.gitkeep
 
+# Backend runtime database (contains sensitive data, not for version control)
+backend/*.db
+backend/app/*.db
+
 # Uploads (keep directory structure, ignore uploaded files)
 uploads/*
 !uploads/.gitkeep

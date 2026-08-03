@@ -48,6 +48,7 @@
           <div class="project-buttons">
             <button class="btn btn-sm btn-success" @click="updateProgress(project)">更新</button>
             <button class="btn btn-sm btn-info" @click="viewProjectProgress(project)">详情</button>
+            <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteProject(project.id)">删除</button>
           </div>
         </div>
         </div>
@@ -94,6 +95,7 @@
             <div class="project-buttons">
               <button class="btn btn-sm btn-success" @click="updateProgress(project)">更新</button>
               <button class="btn btn-sm btn-info" @click="viewProjectProgress(project)">详情</button>
+              <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteProject(project.id)">删除</button>
             </div>
           </div>
           </div>
@@ -138,6 +140,7 @@
             <div class="project-buttons">
               <button class="btn btn-sm btn-success" @click="updateProgress(project)">更新</button>
               <button class="btn btn-sm btn-info" @click="viewProjectProgress(project)">详情</button>
+              <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteProject(project.id)">删除</button>
             </div>
           </div>
           </div>
@@ -401,6 +404,8 @@ const projectProgresses = ref({})
 const users = ref([])
 // 是否只显示已完成项目
 const showCompletedOnly = ref(false)
+// 当前登录用户是否为管理员
+const isAdmin = ref(false)
 
 // 弹窗状态
 const showAddProject = ref(false)
@@ -1060,17 +1065,24 @@ const saveProgress = async () => {
 
 // 删除项目
 const deleteProject = async (id) => {
-  if (confirm('确定要删除这个项目吗？')) {
-    try {
-      const response = await fetch(`/api/projects/${id}/`, {
-        method: 'DELETE'
-      })
-      if (response.ok) {
-        await fetchProjects()
-      }
-    } catch (error) {
-      console.error('删除项目失败:', error)
+  if (!confirm('确定要删除这个项目吗？')) return
+  try {
+    const token = sessionStorage.getItem('token')
+    const response = await fetch(`/api/projects/${id}`, {
+      method: 'DELETE',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    })
+    if (response.ok) {
+      await fetchProjects()
+    } else if (response.status === 403) {
+      alert('无权限：仅管理员可删除项目')
+    } else {
+      const err = await response.json().catch(() => null)
+      alert('删除失败: ' + (err?.error || response.statusText))
     }
+  } catch (error) {
+    console.error('删除项目失败:', error)
+    alert('删除项目失败，请稍后重试')
   }
 }
 
@@ -1226,6 +1238,16 @@ const openAddProjectModal = () => {
 
 // 初始化加载数据
 onMounted(async () => {
+  // 读取当前登录用户信息，判断是否为管理员
+  const userStr = sessionStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      isAdmin.value = !!user.is_admin
+    } catch (e) {
+      console.error('解析用户信息失败:', e)
+    }
+  }
   await fetchUsers()
   await fetchProjects()
 })
@@ -1709,6 +1731,21 @@ onMounted(async () => {
   padding: 8px 20px;
   font-size: 13px;
   border-radius: 10px;
+}
+
+/* 删除按钮 */
+.btn-danger {
+  background: linear-gradient(135deg, #FF8A80, #F76D6D);
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255, 138, 128, 0.3);
+  transition: all 0.2s ease;
+}
+.btn-danger:hover {
+  background: linear-gradient(135deg, #F76D6D, #F2545B);
+  box-shadow: 0 4px 12px rgba(255, 138, 128, 0.4);
+  transform: translateY(-1px);
 }
 
 /* select 下拉框美化 */
