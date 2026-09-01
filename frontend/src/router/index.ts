@@ -54,7 +54,7 @@ const router = createRouter({
       ]
     },
     {
-      path: '/api-documentation',
+      path: '/api',
       name: 'apiDocumentation',
       component: () => import('../views/ApiDocumentation.vue'),
       meta: { requiresAuth: false }

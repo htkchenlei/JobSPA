@@ -220,7 +220,7 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="closeModal">取消</button>
-              <button type="submit" class="btn btn-primary">保存</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingProject">{{ savingProject ? '保存中…' : '保存' }}</button>
             </div>
           </form>
         </div>
@@ -247,7 +247,7 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="showUpdateProgress = false">取消</button>
-              <button type="submit" class="btn btn-primary">保存</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingProgress">{{ savingProgress ? '保存中…' : '保存' }}</button>
             </div>
           </form>
           
@@ -339,7 +339,7 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="showViewProgress = false">关闭</button>
-              <button type="submit" class="btn btn-primary">保存</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingProject">{{ savingProject ? '保存中…' : '保存' }}</button>
             </div>
           </form>
         </div>
@@ -413,6 +413,10 @@ const showEditProject = ref(false)
 const showUpdateProgress = ref(false)
 const showViewProgress = ref(false)
 const showConfirmDialog = ref(false)
+
+// 防重复提交状态
+const savingProgress = ref(false)
+const savingProject = ref(false)
 
 // 表单数据
 const formData = ref({
@@ -617,6 +621,9 @@ const closeModal = () => {
 
 // 保存项目
 const saveProject = async () => {
+  // 防重复提交：上一次请求未完成前忽略本次提交
+  if (savingProject.value) return
+  savingProject.value = true
   try {
     if (showEditProject.value || showViewProgress.value) {
       // 编辑现有项目（包括从详情模态框编辑）
@@ -905,6 +912,9 @@ const saveProject = async () => {
     }
   } catch (error) {
     console.error('保存项目失败:', error)
+    alert('保存失败，请重试')
+  } finally {
+    savingProject.value = false
   }
 }
 
@@ -1004,6 +1014,9 @@ const viewProjectProgress = async (project) => {
 
 // 保存进展
 const saveProgress = async () => {
+  // 防重复提交：上一次请求未完成前忽略本次提交
+  if (savingProgress.value) return
+  savingProgress.value = true
   try {
     if (currentProject.value) {
       const projectId = currentProject.value.id
@@ -1056,10 +1069,15 @@ const saveProgress = async () => {
         }
         // 执行后台更新
         updateProjectInfo()
+      } else {
+        alert('保存失败，请重试')
       }
     }
   } catch (error) {
     console.error('保存进展失败:', error)
+    alert('保存失败，请重试')
+  } finally {
+    savingProgress.value = false
   }
 }
 

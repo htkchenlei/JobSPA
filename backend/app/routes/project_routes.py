@@ -398,6 +398,29 @@ def update_project_progress(id):
     today = east_8_now.date()
     now = east_8_now.time()
     
+    # 防重复提交：60秒内相同项目+相同用户+相同内容的提交视为网络卡顿导致的重复请求，直接幂等返回
+    current_dt = datetime.combine(today, now)
+    recent_records = ProjectProgress.query.filter(
+        ProjectProgress.project_id == project.id,
+        ProjectProgress.update_date == today,
+        ProjectProgress.updated_by == data.get('updated_by', 1),
+        ProjectProgress.update_content == data.get('update_content', '')
+    ).all()
+    for rec in recent_records:
+        if rec.update_time and (current_dt - datetime.combine(today, rec.update_time)).total_seconds() < 60:
+            print(f"检测到重复提交（项目{project.id}），60秒内相同内容已存在，幂等返回")
+            stage_int = int(project.stage)
+            stage_text = STAGE_MAP.get(stage_int, '未知阶段')
+            if '|' in stage_text:
+                stage_text = stage_text.split('|')[0]
+            return jsonify({
+                'id': project.id,
+                'stage': stage_int,
+                'stage_text': stage_text,
+                'progressId': rec.id,
+                'message': '项目进度更新成功'
+            }), 200
+    
     # 创建进度记录
     new_progress = ProjectProgress(
         project_id=project.id,

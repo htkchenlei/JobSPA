@@ -35,7 +35,7 @@
 ### 🌐 对外公开 API
 - 无需认证的公共接口
 - 支持按周/月/自定义范围查询项目更新
-- 在线 API 文档页面 (`/api-documentation`)
+- 在线 API 文档页面 (`/api`)
 
 ## 🛠 技术栈
 
@@ -232,7 +232,7 @@ ports:
 | `/api/public/monthly-updates` | GET | 获取当月项目更新列表（本月1号~当天） |
 | `/api/public/range-updates` | GET | 获取指定日期范围的项目更新（需传 `start_date` 和 `end_date`） |
 
-详细文档请访问：`http://your-domain/api-documentation`
+详细文档请访问：`http://your-domain/api`
 
 ### API 文档
 
