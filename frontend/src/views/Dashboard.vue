@@ -8,7 +8,7 @@
 
     <!-- 统计卡片 - 4列 -->
     <div class="stats-cards">
-      <div class="stat-card card-mint">
+      <div class="stat-card card-mint" @click="goToProjectList()">
         <div class="stat-content">
           <p class="stat-label">项目总数</p>
           <h3 class="stat-value">{{ projectStats.total }}</h3>
@@ -20,7 +20,7 @@
         </div>
       </div>
 
-      <div class="stat-card card-sky">
+      <div class="stat-card card-sky" @click="goToProjectList()">
         <div class="stat-content">
           <p class="stat-label">进行中</p>
           <h3 class="stat-value">{{ projectStats.inProgress }}</h3>
@@ -32,7 +32,7 @@
         </div>
       </div>
 
-      <div class="stat-card card-coral">
+      <div class="stat-card card-coral" @click="goToProjectList('completed')">
         <div class="stat-content">
           <p class="stat-label">已完成</p>
           <h3 class="stat-value">{{ projectStats.completed }}</h3>
@@ -44,10 +44,10 @@
         </div>
       </div>
 
-      <div class="stat-card card-lavender">
+      <div class="stat-card card-lavender" @click="goToWorkLog">
         <div class="stat-content">
-          <p class="stat-label">本周日志</p>
-          <h3 class="stat-value">{{ workLogStats.weekly }}</h3>
+          <p class="stat-label">本月日志</p>
+          <h3 class="stat-value">{{ workLogStats.monthly }}</h3>
         </div>
         <div class="stat-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -102,7 +102,7 @@ import Chart from 'chart.js/auto'
 import router from '../router'
 
 const projectStats = ref({ total: 0, inProgress: 0, completed: 0 })
-const workLogStats = ref({ weekly: 0 })
+const workLogStats = ref({ monthly: 0 })
 const recentActivities = ref<any[]>([])
 
 const projectChart = ref<HTMLCanvasElement | null>(null)
@@ -139,22 +139,27 @@ const fetchProjectStats = async () => {
 }
 
 const fetchWorkLogStats = async () => {
+  // “本月日志”统计的是本月手动录入的项目进展（project_progress）条数，
+  // 而不是 AI 生成的 work_log 记录
   try {
-    const response = await fetch('/api/work-log/', { headers: getAuthHeader() })
+    const response = await fetch('/api/projects/monthly-progress-count', { headers: getAuthHeader() })
     if (response.ok) {
-      const logs = await response.json()
-      const now = new Date()
-      const monday = new Date(now)
-      monday.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))
-      monday.setHours(0, 0, 0, 0)
-      workLogStats.value.weekly = logs.filter((l: any) => {
-        if (!l.log_date) return false
-        const d = new Date(l.log_date)
-        return d >= monday
-      }).length
+      const data = await response.json()
+      if (data && typeof data.count === 'number') {
+        workLogStats.value.monthly = data.count
+        return
+      }
+    }
+    // 后端未同步新接口时退回旧的 AI 日志月度统计，避免接口缺失导致报错
+    const fallback = await fetch('/api/work-log/monthly-count', { headers: getAuthHeader() })
+    if (fallback.ok) {
+      const data = await fallback.json()
+      if (data && typeof data.count === 'number') {
+        workLogStats.value.monthly = data.count
+      }
     }
   } catch (error) {
-    console.error('获取工作日志统计失败:', error)
+    console.error('获取本月日志统计失败:', error)
   }
 }
 
@@ -177,6 +182,20 @@ const fetchRecentUpdates = async () => {
 
 const goToProjectManagement = () => {
   router.push('/project-management')
+}
+
+// 跳转到项目管理页；view = 'completed' 时直接展示已完成项目
+const goToProjectList = (view?: string) => {
+  if (view === 'completed') {
+    router.push({ path: '/project-management', query: { view: 'completed' } })
+  } else {
+    router.push('/project-management')
+  }
+}
+
+// 跳转到工作日志页
+const goToWorkLog = () => {
+  router.push('/work-log')
 }
 
 const initProjectChart = (projects: any[]) => {
@@ -297,7 +316,7 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  cursor: default;
+  cursor: pointer;
 }
 .stat-card:hover {
   transform: translateY(-2px);
@@ -478,5 +497,75 @@ onMounted(async () => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 600px) {
+  .page-header {
+    margin-bottom: 14px;
+  }
+
+  .page-header h1 {
+    font-size: 20px;
+  }
+
+  .page-header p {
+    font-size: 13px;
+  }
+
+  .stats-cards {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .stat-card {
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .stat-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .main-content {
+    gap: 12px;
+  }
+
+  .content-card {
+    border-radius: 12px;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+  }
+
+  .chart-wrapper {
+    padding: 10px 12px 6px;
+    height: 230px;
+  }
+
+  .chart-card,
+  .updates-card {
+    min-height: 280px;
+  }
+
+  .updates-list {
+    padding: 4px 10px;
+  }
 }
 </style>

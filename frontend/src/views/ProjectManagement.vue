@@ -102,14 +102,64 @@
         </div>
       </div>
       
-      <!-- 超期项目 -->
+      <!-- 近期项目（1~3个月） -->
       <div v-if="overdueProjects.length > 0">
-        <h4 class="project-section-title">超期项目</h4>
+        <h4 class="project-section-title">近期项目</h4>
         <div class="project-list">
           <div 
             class="project-card" 
             :class="getStageClass(project.stage)" 
             v-for="project in overdueProjects" 
+            :key="project.id"
+          >
+          <div class="project-card-header">
+            <h4 class="project-name">{{ project.name }}</h4>
+            <span class="status-badge" :class="getStageClass(project.stage)">
+              {{ project.stage_text }}
+            </span>
+          </div>
+          <div class="project-card-body">
+            <div class="project-info">
+              <div class="info-item">
+                <label>规模：</label>
+                <span>{{ project.scale || '未设置' }}</span>
+              </div>
+              <div class="info-item">
+                <label>阶段：</label>
+                <span>{{ project.stage_text }}</span>
+              </div>
+              <div class="info-item">
+                <label>更新日期：</label>
+                <span>{{ getLatestUpdateDate(project.id) || '暂无更新' }}</span>
+              </div>
+            </div>
+            <div class="project-update">
+              <label>最近更新：</label>
+              <p class="update-content">{{ getLatestUpdate(project.id) || '暂无更新' }}</p>
+            </div>
+            <div class="project-buttons">
+              <button class="btn btn-sm btn-success" @click="updateProgress(project)">更新</button>
+              <button class="btn btn-sm btn-info" @click="viewProjectProgress(project)">详情</button>
+              <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteProject(project.id)">删除</button>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 长期未更新项目（超过3个月）默认折叠，点击“显示更多”展开 -->
+      <div v-if="staleProjects.length > 0" class="stale-section">
+        <div class="project-section-head">
+          <h4 class="project-section-title">超期项目</h4>
+          <button class="btn btn-sm show-more-btn" @click="showStaleProjects = !showStaleProjects">
+            {{ showStaleProjects ? '收起' : '显示更多' }}
+          </button>
+        </div>
+        <div v-if="showStaleProjects" class="project-list">
+          <div 
+            class="project-card" 
+            :class="getStageClass(project.stage)" 
+            v-for="project in staleProjects" 
             :key="project.id"
           >
           <div class="project-card-header">
@@ -367,6 +417,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 // 项目阶段映射
 const STAGE_MAP = {
@@ -1109,20 +1162,14 @@ const toggleCompletedProjects = () => {
   showCompletedOnly.value = !showCompletedOnly.value
 }
 
-// 检查项目是否超期（最近更新是否超过60天）
-const isProjectOverdue = (projectId) => {
-  const project = projects.value.find(p => p.id === projectId)
+// 获取项目距离最近更新的天数（无更新记录返回 null）
+const getDaysSinceUpdate = (project) => {
   if (!project || !project.latest_update || !project.latest_update.date || project.latest_update.date === '暂无更新') {
-    // 没有更新记录，视为超期
-    return true
+    return null
   }
-  
   const updateDate = new Date(project.latest_update.date)
   const today = new Date()
-  const diffTime = Math.abs(today.getTime() - updateDate.getTime())
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  return diffDays > 60
+  return Math.floor((today.getTime() - updateDate.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 // 过滤项目列表
@@ -1172,16 +1219,34 @@ const filteredProjects = computed(() => {
   return filtered
 })
 
-// 进行中项目（最近60天内有更新）
+// 是否展开显示“超过3个月”的长期未更新项目
+const showStaleProjects = ref(false)
+
+// 进行中项目：1个月内（30天内）有更新
 const activeProjects = computed(() => {
   if (showCompletedOnly.value) return []
-  return filteredProjects.value.filter(project => !isProjectOverdue(project.id))
+  return filteredProjects.value.filter(project => {
+    const days = getDaysSinceUpdate(project)
+    return days !== null && days <= 30
+  })
 })
 
-// 超期项目（超过60天未更新）
+// 超期项目：超过1个月且不超过3个月（30~90天）未更新
 const overdueProjects = computed(() => {
   if (showCompletedOnly.value) return []
-  return filteredProjects.value.filter(project => isProjectOverdue(project.id))
+  return filteredProjects.value.filter(project => {
+    const days = getDaysSinceUpdate(project)
+    return days !== null && days > 30 && days <= 90
+  })
+})
+
+// 长期未更新项目：超过3个月（90天以上）或从无更新记录，默认收起，点“显示更多”展示
+const staleProjects = computed(() => {
+  if (showCompletedOnly.value) return []
+  return filteredProjects.value.filter(project => {
+    const days = getDaysSinceUpdate(project)
+    return days === null || days > 90
+  })
 })
 
 // 已完成项目
@@ -1256,6 +1321,10 @@ const openAddProjectModal = () => {
 
 // 初始化加载数据
 onMounted(async () => {
+  // 从 URL 参数判断是否直接进入“已完成”视图（仪表盘“已完成”卡片跳转而来）
+  if (route.query.view === 'completed') {
+    showCompletedOnly.value = true
+  }
   // 读取当前登录用户信息，判断是否为管理员
   const userStr = sessionStorage.getItem('user')
   if (userStr) {
@@ -1319,6 +1388,32 @@ onMounted(async () => {
   height: 20px;
   background: linear-gradient(180deg, #FF9A8B, #FFB7B2);
   border-radius: 2px;
+}
+
+/* 分类标题行（标题 + 显示更多按钮） */
+.project-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.project-section-head .project-section-title {
+  margin: 24px 0 16px 0;
+}
+
+.show-more-btn {
+  background: linear-gradient(135deg, #C3B1E1 0%, #B19FD0 100%);
+  color: white;
+  border: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(195, 177, 225, 0.35);
+}
+
+.show-more-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(195, 177, 225, 0.5);
 }
 
 /* 卡片式布局 */
@@ -1773,5 +1868,130 @@ select.form-control {
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
+}
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 768px) {
+  .project-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .project-header h3 {
+    font-size: 20px;
+  }
+
+  .header-buttons {
+    width: 100%;
+  }
+
+  .header-buttons .btn {
+    flex: 1;
+    padding: 10px 6px;
+    font-size: 13px;
+  }
+
+  .project-list {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .project-section-title {
+    margin: 16px 0 12px 0;
+    font-size: 15px;
+  }
+
+  .project-section-head .project-section-title {
+    margin: 16px 0 12px 0;
+  }
+
+  .project-card-header {
+    padding: 14px 16px;
+  }
+
+  .project-card-body {
+    padding: 16px;
+  }
+
+  .project-buttons {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .project-buttons .btn-sm {
+    flex: 1 1 auto;
+    padding: 8px 10px;
+  }
+
+  .project-card-header {
+    gap: 8px;
+  }
+
+  .project-name {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .update-content {
+    -webkit-line-clamp: 3;
+    max-height: 4.5em;
+  }
+
+  /* 弹窗在手机上改为底部抽屉样式，便于单手操作 */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    overflow-y: auto;
+  }
+
+  .view-progress-modal {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .view-progress-body {
+    max-height: none;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-footer {
+    padding: 14px 16px;
+  }
+
+  .form-row {
+    margin: 0 -6px;
+  }
+
+  .form-group {
+    min-width: 0;
+    padding: 0 6px;
+  }
+
+  .form-group.col-md-6,
+  .form-group.col-md-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .checkbox-right {
+    position: static;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
 }
 </style>

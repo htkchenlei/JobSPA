@@ -740,5 +740,37 @@ onMounted(async () => {
   .chart {
     height: 300px;
   }
+
+  .charts-container,
+  .tables-container {
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .chart-card,
+  .table-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .statistics h3 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .chart {
+    height: 240px;
+  }
+
+  .chart-card h4,
+  .table-card h4 {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .table-responsive {
+    border-radius: 8px;
+  }
 }
 </style>

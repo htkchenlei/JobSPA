@@ -1,7 +1,7 @@
 <template>
   <div class="layout">
     <!-- 侧边栏 -->
-    <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+    <aside class="sidebar" :class="{ collapsed: !isMobile && sidebarCollapsed, 'mobile-open': mobileMenuOpen }">
       <div class="logo">
         <div class="logo-icon-wrapper">
           <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -14,7 +14,7 @@
           <span v-if="!sidebarCollapsed" class="logo-text">JobSPA</span>
         </transition>
       </div>
-      <nav class="menu">
+      <nav class="menu" @click="closeMobileMenu">
         <router-link to="/dashboard" class="menu-item">
           <span class="menu-icon">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -99,6 +99,9 @@
       </nav>
     </aside>
     
+    <!-- 移动端菜单遮罩 -->
+    <div v-if="isMobile && mobileMenuOpen" class="sidebar-mask" @click="closeMobileMenu"></div>
+    
     <!-- 主内容区域 -->
     <main class="main-content">
       <header class="header">
@@ -131,12 +134,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 const sidebarCollapsed = ref(false)
+
+// 是否移动端（用于切换抽屉式侧边栏）
+const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768)
+// 移动端菜单是否展开
+const mobileMenuOpen = ref(false)
+
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768
+  if (!isMobile.value) mobileMenuOpen.value = false
+}
+
+onMounted(() => window.addEventListener('resize', handleResize))
+onUnmounted(() => window.removeEventListener('resize', handleResize))
 
 // 获取用户名
 const userName = computed(() => {
@@ -165,9 +181,18 @@ const currentRouteName = computed(() => {
     return routeMap[route.path] || '仪表盘'
   })
 
-// 切换侧边栏
+// 切换侧边栏：桌面折叠/展开，移动端打开抽屉
 const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value
+  if (isMobile.value) {
+    mobileMenuOpen.value = true
+  } else {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+  }
+}
+
+// 关闭移动端菜单
+const closeMobileMenu = () => {
+  if (isMobile.value) mobileMenuOpen.value = false
 }
 
 // 修改密码
@@ -401,6 +426,99 @@ const logout = () => {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+}
+
+/* 移动端菜单遮罩 */
+.sidebar-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(93, 90, 109, 0.45);
+  z-index: 1001;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 768px) {
+  .layout {
+    overflow: hidden;
+  }
+
+  .main-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* 侧边栏改为抽屉式 */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 260px;
+    max-width: 85vw;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1002;
+    overflow-y: auto;
+    box-shadow: none;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.18);
+  }
+
+  .logo {
+    padding: 18px 20px;
+  }
+
+  .menu {
+    padding-bottom: 24px;
+  }
+
+  .header {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .header-left {
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .header h2 {
+    font-size: 17px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40vw;
+  }
+
+  .toggle-sidebar {
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #5D5A6D;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
+  }
+
+  .header-right .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .content {
+    padding: 14px 12px 24px;
+  }
 }
 
 /* 过渡动画 */

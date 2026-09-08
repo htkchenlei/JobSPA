@@ -815,4 +815,53 @@ h1 {
   overflow-x: auto;
   margin: 0;
 }
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 768px) {
+  .change-password {
+    padding: 4px;
+  }
+
+  .change-password > h1,
+  .api-documentation > h1 {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  .settings-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 4px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .change-password-form,
+  .ai-settings-form {
+    padding: 20px 16px;
+  }
+
+  .model-options {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .api-documentation {
+    padding: 8px;
+  }
+
+  .api-card {
+    padding: 14px;
+  }
+
+  .api-url {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+}
 </style>

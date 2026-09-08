@@ -661,4 +661,37 @@ onMounted(async () => {
     width: 100%;
   }
 }
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 768px) {
+  .advanced-search {
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .main-search-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-section {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 12px;
+  }
+
+  .search-section h4 {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .search-results {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .search-results .table {
+    min-width: 620px;
+  }
+}
 </style>

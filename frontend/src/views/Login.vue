@@ -183,4 +183,22 @@ const resetForm = () => {
   margin-right: 8px;
   vertical-align: middle;
 }
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 12px;
+  }
+
+  .login-form {
+    max-width: 100%;
+    padding: 24px 18px;
+    border-radius: 12px;
+  }
+
+  .login-form h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+}
 </style>

@@ -41,6 +41,54 @@ def get_work_logs():
     
     return jsonify(response), 200
 
+# 获取本周（周一~周日）的工作日志数量
+@bp.route('/weekly-count', methods=['GET'])
+def get_weekly_work_log_count():
+    from datetime import timedelta
+    from sqlalchemy import create_engine, text
+    from app import app
+    today = date.today()
+    monday = today - timedelta(days=today.weekday())
+    try:
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT COUNT(*) FROM work_log WHERE log_date >= :start_date AND log_date <= :end_date"),
+                {'start_date': monday.isoformat(), 'end_date': today.isoformat()}
+            )
+            count = result.fetchone()[0]
+        return jsonify({'count': count}), 200
+    except Exception as e:
+        print(f"查询本周日志数量失败: {e}")
+        return jsonify({'count': 0, 'error': str(e)}), 500
+
+# 获取本月（1号~本月最后一天）的工作日志数量
+@bp.route('/monthly-count', methods=['GET'])
+def get_monthly_work_log_count():
+    from datetime import timedelta
+    from sqlalchemy import create_engine, text
+    from app import app
+    today = date.today()
+    month_start = today.replace(day=1)
+    # 下月1号 - 1天 = 本月最后一天
+    if month_start.month == 12:
+        next_month = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month = month_start.replace(month=month_start.month + 1)
+    month_end = next_month - timedelta(days=1)
+    try:
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT COUNT(*) FROM work_log WHERE log_date >= :start_date AND log_date <= :end_date"),
+                {'start_date': month_start.isoformat(), 'end_date': month_end.isoformat()}
+            )
+            count = result.fetchone()[0]
+        return jsonify({'count': count}), 200
+    except Exception as e:
+        print(f"查询本月日志数量失败: {e}")
+        return jsonify({'count': 0, 'error': str(e)}), 500
+
 # 获取用户的工作日志
 @bp.route('/user/<int:user_id>', methods=['GET'])
 def get_user_work_logs(user_id):

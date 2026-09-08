@@ -62,6 +62,33 @@ def get_latest_updates():
     
     return jsonify(result), 200
 
+# 获取本月手动录入的项目进展条数（Dashboard “本月日志”统计使用）
+# 数据源为 project_progress（用户在项目详情手动点的“更新”），非 AI 生成的 work_log
+@bp.route('/monthly-progress-count', methods=['GET'])
+def get_monthly_progress_count():
+    from sqlalchemy import text
+    today = date.today()
+    month_start = today.replace(day=1)
+    if month_start.month == 12:
+        next_month = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month = month_start.replace(month=month_start.month + 1)
+    month_end = next_month - timedelta(days=1)
+    query = text(
+        "SELECT COUNT(*) FROM project_progress "
+        "WHERE update_date >= :start_date AND update_date <= :end_date"
+    )
+    try:
+        with db.engine.connect() as conn:
+            count = conn.execute(
+                query,
+                {'start_date': month_start.isoformat(), 'end_date': month_end.isoformat()}
+            ).scalar()
+        return jsonify({'count': count}), 200
+    except Exception as e:
+        print(f"查询本月项目进展条数失败: {e}")
+        return jsonify({'count': 0, 'error': str(e)}), 500
+
 # 获取项目列表
 @bp.route('/', methods=['GET'])
 def get_projects():

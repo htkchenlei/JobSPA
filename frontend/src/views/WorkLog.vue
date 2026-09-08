@@ -21,17 +21,18 @@
             <div v-for="day in prevMonthDays" :key="`prev-${day}`" class="calendar-day other-month">{{ day }}</div>
             
             <!-- 当月的日期 -->
-        <div 
-          v-for="day in currentMonthDays" 
-          :key="`current-${day}`" 
+        <div
+          v-for="day in currentMonthDays"
+          :key="`current-${day}`"
           class="calendar-day"
           :class="{
-            'today': isToday(day), 
+            'today': isToday(day),
             'has-log': hasLog(day),
             'has-activities': hasActivities(day),
             'future-day': isFutureDay(day),
             'selected': day === selectedDate
           }"
+          :title="getDayTooltip(day)"
           @click="!isFutureDay(day) && selectDate(day)"
         >
           {{ day }}
@@ -42,8 +43,15 @@
             <!-- 下个月的日期 -->
             <div v-for="day in nextMonthDays" :key="`next-${day}`" class="calendar-day other-month">{{ day }}</div>
           </div>
+
+          <!-- 日历图例 -->
+          <div class="calendar-legend">
+            <span class="legend-item legend-today">今天</span>
+            <span class="legend-item legend-log">已生成 AI 日志</span>
+            <span class="legend-item legend-activities">仅有项目进展</span>
+          </div>
         </div>
-        
+
         <!-- 生成日志按钮 -->
         <div v-if="selectedDate && isToday(selectedDate)" class="generate-log-container">
           <button class="btn btn-primary" @click="generateLog" :disabled="isGenerating">
@@ -197,6 +205,26 @@ const hasActivities = (day: number) => {
   const dateStr = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   const activities = dailyActivities.value[dateStr]
   return activities && activities.length > 0
+}
+
+// 单元格 hover 提示，明确区分 AI 日志与项目进展
+const getDayTooltip = (day: number) => {
+  const dateStr = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  const log = workLogs.value.find((l: any) => l.date === dateStr)
+  const activities = dailyActivities.value[dateStr]
+  const hasAiLog = !!(log && log.content)
+  const hasProgress = !!(activities && activities.length)
+  if (hasAiLog) {
+    const isAutoFilled = typeof log.content === 'string' && log.content.startsWith('【系统补齐')
+    const tag = isAutoFilled ? '系统补齐自项目进展' : '已生成 AI 工作日志'
+    return hasProgress
+      ? `${dateStr} · ${tag}（含 ${activities.length} 条项目进展）`
+      : `${dateStr} · ${tag}`
+  }
+  if (hasProgress) {
+    return `${dateStr} · ${activities.length} 条项目进展（未生成工作日志）`
+  }
+  return dateStr
 }
 
 const selectDate = async (day: number) => {
@@ -759,6 +787,48 @@ onUnmounted(() => {
   opacity: 0.9;
 }
 
+/* 日历图例 */
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: #8B8899;
+  justify-content: center;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid #F0E6E3;
+}
+
+.legend-today::before {
+  background: linear-gradient(135deg, #7EC8E3, #6BB8D3);
+  border-color: transparent;
+}
+
+.legend-log::before {
+  background: linear-gradient(135deg, #A8E6CF, #7DD3C0);
+  border-color: transparent;
+}
+
+.legend-activities::before {
+  background: linear-gradient(135deg, #F1F8F1, #E8F5E8);
+  border-color: #D4EAD8;
+}
+
 /* 生成日志按钮 */
 .generate-log-container {
   display: flex;
@@ -1053,5 +1123,80 @@ onUnmounted(() => {
   padding: 20px 24px;
   border-top: 1px solid #F0E6E3;
   background: linear-gradient(90deg, rgba(168, 230, 207, 0.05), rgba(195, 177, 225, 0.05));
+}
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 860px) {
+  .work-log-content {
+    flex-direction: column;
+  }
+
+  .left-section {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .right-section {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .work-log {
+    padding: 0;
+  }
+
+  .calendar-container {
+    padding: 12px;
+  }
+
+  .calendar-header {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .calendar-header h2 {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .calendar-header .btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .calendar-day {
+    min-height: 30px;
+    max-height: 40px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .calendar-weekdays,
+  .calendar-days {
+    gap: 2px;
+  }
+
+  .log-content,
+  .prompt-content,
+  .model-selector {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .empty-state {
+    padding: 40px 16px;
+  }
+
+  .activities-list li {
+    padding: 10px 12px;
+  }
+
+  .modal {
+    width: 95%;
+  }
 }
 </style>

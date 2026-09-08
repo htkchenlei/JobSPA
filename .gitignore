@@ -68,6 +68,9 @@ frontend/dist/
 tmp/
 temp/
 
+# Preview screenshots (local only)
+screenshots/
+
 # Backend uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
