@@ -99,6 +99,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 // 日历相关
 const currentDate = ref(new Date())
@@ -313,23 +316,6 @@ const getDateActivities = async (dateStr: string) => {
   return []
 }
 
-// 获取今天的活动
-const getTodayActivities = async () => {
-  try {
-    // 获取今天的日期
-    const today = new Date()
-    const dateStr = today.toISOString().split('T')[0]
-    // 调用后端API获取今天的项目更新信息
-    const response = await fetch(`/api/work-log/date-activities/${dateStr}`)
-    const activities = await response.json()
-    
-    return activities
-  } catch (error) {
-    console.error('获取活动失败:', error)
-    return []
-  }
-}
-
 let monthCacheWarned = false
 
 // 加载当月“有项目进展的日期”：只依赖后端缓存接口（/api/projects/month-days）。
@@ -527,10 +513,25 @@ const saveLog = async () => {
 
 // 初始化
 onMounted(async () => {
-  // 设置今天为选中日期
   const today = new Date()
-  selectedDate.value = today.getDate()
   const todayStr = today.toISOString().split('T')[0]
+
+  // 支持从 URL 直接指定日期（仪表盘日历点击某天跳转而来）：/work-log?date=YYYY-MM-DD
+  const paramDate = typeof route.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(route.query.date)
+    ? route.query.date
+    : null
+
+  // 目标日期：有 ?date 则用该日期并定位到对应月份，否则定位今天
+  let targetDateStr = todayStr
+  if (paramDate) {
+    targetDateStr = paramDate
+    const [y, m, d] = paramDate.split('-').map(Number)
+    currentDate.value = new Date(y, m - 1, 1)
+    selectedDate.value = d
+  } else {
+    selectedDate.value = today.getDate()
+  }
+  const isTodayTarget = targetDateStr === todayStr
 
   // 获取当前登录用户ID
   let currentUserId = 1 // 默认值
@@ -544,32 +545,32 @@ onMounted(async () => {
     }
   }
 
-  // 并行初始化：日历颜色只等缓存接口一次请求，不被今日活动/AI日志串行拖慢
+  // 并行初始化：日历颜色只等缓存接口一次请求，不被活动/AI日志串行拖慢
   await Promise.all([
-    // ① 当月有进展的日期（渲染日历底色）
+    // ① 目标月份有进展的日期（渲染日历底色）
     loadProgressDaysOfMonth(),
 
-    // ② 今天的活动记录 + 提示词
+    // ② 目标日期的活动记录 + 提示词
     (async () => {
       try {
-        const activities = await getTodayActivities()
+        const activities = await getDateActivities(targetDateStr)
         currentActivities.value = activities
         if (activities.length > 0) {
-          currentPrompt.value = `假设你是一位售前工程师，为了向公司展示项目进度和工作进度，请根据以下今天的活动记录，生成一份工作日志，字数不少于40字：\n${activities.join('\n')}`
+          currentPrompt.value = `假设你是一位售前工程师，为了向公司展示项目进度和工作进度，请根据以下${isTodayTarget ? '今天的' : targetDateStr + '的'}活动记录，生成一份工作日志，字数不少于40字：\n${activities.join('\n')}`
         }
       } catch (e) {
-        console.error('获取今日活动失败:', e)
+        console.error('获取目标日期活动失败:', e)
       }
     })(),
 
-    // ③ 今天的工作日志 + 全部 AI 日志（hasLog 深绿标记）
+    // ③ 目标日期的工作日志 + 全部 AI 日志（hasLog 深绿标记）
     (async () => {
       try {
-        const logResponse = await fetch(`/api/work-log/date/${todayStr}`)
+        const logResponse = await fetch(`/api/work-log/date/${targetDateStr}`)
         if (logResponse.ok) {
           const logData = await logResponse.json()
           if (logData && logData.work_log_by_ai) {
-            selectedLog.value = { date: todayStr, content: logData.work_log_by_ai }
+            selectedLog.value = { date: targetDateStr, content: logData.work_log_by_ai }
           }
         }
         const logsResponse = await fetch(`/api/work-log/user/${currentUserId}`)

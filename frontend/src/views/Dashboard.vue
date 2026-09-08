@@ -57,7 +57,7 @@
       </div>
     </div>
 
-    <!-- 主内容区 - 左右分栏 -->
+    <!-- 主内容区 - 左：项目阶段分布 / 中：工作日志日历 / 右：最近更新 -->
     <div class="main-content">
       <!-- 左侧：项目阶段分布 -->
       <div class="content-card chart-card">
@@ -68,6 +68,15 @@
         <div class="chart-wrapper">
           <canvas ref="projectChart"></canvas>
         </div>
+      </div>
+
+      <!-- 中间：工作日志日历（复用 month-days 缓存，有进展/有日志的日期上色） -->
+      <div class="content-card calendar-card">
+        <div class="card-header">
+          <h3>工作日志日历</h3>
+          <button class="view-all-btn" @click="goToWorkLog">去写日志</button>
+        </div>
+        <MonthCalendar class="calendar-embed" @select="goToWorkLogOnDate" />
       </div>
 
       <!-- 右侧：最近更新 -->
@@ -100,6 +109,7 @@
 import { ref, onMounted } from 'vue'
 import Chart from 'chart.js/auto'
 import router from '../router'
+import MonthCalendar from '../components/MonthCalendar.vue'
 
 const projectStats = ref({ total: 0, inProgress: 0, completed: 0 })
 const workLogStats = ref({ monthly: 0 })
@@ -196,6 +206,11 @@ const goToProjectList = (view?: string) => {
 // 跳转到工作日志页
 const goToWorkLog = () => {
   router.push('/work-log')
+}
+
+// 从仪表盘日历点击某天 → 工作日志页并直达该日期
+const goToWorkLogOnDate = (date: string) => {
+  router.push({ path: '/work-log', query: { date } })
 }
 
 const initProjectChart = (projects: any[]) => {
@@ -359,16 +374,27 @@ onMounted(async () => {
 .card-lavender .stat-icon { background: linear-gradient(135deg, #B39DDB, #9575CD); box-shadow: 0 4px 12px rgba(179, 157, 219, 0.35); }
 
 /* ---- 主内容区 ---- */
+/* 左：项目阶段分布 / 中：工作日志日历 / 右：最近更新 */
 .main-content {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 1fr 1.18fr 1fr;
   gap: 16px;
+  align-items: start;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   .main-content {
     grid-template-columns: 1fr;
   }
+}
+
+.calendar-card {
+  min-width: 0;
+  min-height: 340px;
+}
+
+.calendar-embed {
+  padding: 8px 12px 12px;
 }
 
 .content-card {
