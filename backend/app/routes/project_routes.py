@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ..models.models import User, Project, ProjectProgress, LatestUpdate
 from .. import db
+from ..services import progress_day_cache
 from datetime import datetime, date, time, timedelta
 import os
 import jwt
@@ -88,6 +89,53 @@ def get_monthly_progress_count():
     except Exception as e:
         print(f"查询本月项目进展条数失败: {e}")
         return jsonify({'count': 0, 'error': str(e)}), 500
+
+# 获取某月“有项目进展的日期”（含每日条数），供工作日志日历渲染。
+# 优先读缓存文件；缓存缺失/过期时才查一次库并回写缓存。
+@bp.route('/month-days', methods=['GET'])
+def get_progress_month_days():
+    from sqlalchemy import text
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    if not year or not month or month < 1 or month > 12:
+        return jsonify({'days': []}), 200
+
+    from app import app
+    entry = progress_day_cache.get_month_entry(app, year, month)
+    if entry is not None:
+        counts = entry.get('counts', {})
+        days = [{'day': d, 'count': int(counts.get(str(d), 0))} for d in entry.get('days', [])]
+        return jsonify({'days': days}), 200
+
+    # 缓存未命中：一次性查询该月所有有进展的日期并回写缓存
+    month_start = date(year, month, 1)
+    if month == 12:
+        next_month = date(year + 1, 1, 1)
+    else:
+        next_month = date(year, month + 1, 1)
+    month_end = next_month - timedelta(days=1)
+
+    try:
+        with db.engine.connect() as conn:
+            rows = conn.execute(
+                text(
+                    "SELECT update_date, COUNT(*) FROM project_progress "
+                    "WHERE update_date >= :s AND update_date <= :e GROUP BY update_date"
+                ),
+                {'s': month_start.isoformat(), 'e': month_end.isoformat()}
+            ).fetchall()
+
+        items = []
+        for row in rows:
+            day = int(str(row[0]).split('-')[2])
+            items.append({'day': day, 'count': int(row[1])})
+        items.sort(key=lambda x: x['day'])
+
+        progress_day_cache.set_month_days(app, year, month, items)
+        return jsonify({'days': items}), 200
+    except Exception as e:
+        print(f"查询当月进展日期失败: {e}")
+        return jsonify({'days': []}), 200
 
 # 获取项目列表
 @bp.route('/', methods=['GET'])
@@ -484,7 +532,14 @@ def update_project_progress(id):
     
     db.session.add(new_progress)
     db.session.commit()
-    
+
+    # 同步更新“当月有进展日期”缓存，保证工作日志日历当天立即出现标记
+    try:
+        from app import app as flask_app
+        progress_day_cache.add_day(flask_app, today.year, today.month, today.day)
+    except Exception as e:
+        print(f"更新进展日期缓存失败: {e}")
+
     stage_int = int(project.stage)
     stage_text = STAGE_MAP.get(stage_int, '未知阶段')
     # 只显示"|"前面的内容

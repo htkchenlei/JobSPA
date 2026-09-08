@@ -51,6 +51,9 @@ data/*.sqlite3
 backend/*.db
 backend/app/*.db
 
+# Runtime “有进展日期”缓存文件（方案A，运行时自动生成）
+progress_days_cache.json
+
 # Uploads (keep directory structure, ignore uploaded files)
 uploads/*
 !uploads/.gitkeep

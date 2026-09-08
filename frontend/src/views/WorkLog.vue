@@ -112,6 +112,20 @@ const currentActivities = ref<string[]>([])
 // 存储每天的活动记录，格式：{ '2026-03-20': ['活动1', '活动2'] }
 const dailyActivities = ref<Record<string, string[]>>({})
 
+// 缓存“每月有项目进展的日期”，来自后端缓存接口，避免逐日查询数据库
+const progressDaysByMonth = ref<Record<string, { day: number; count: number }[]>>({})
+
+// 生成 YYYY-MM 月份键
+const getMonthKey = (year: number, month: number) =>
+  `${year}-${String(month + 1).padStart(2, '0')}`
+
+// 获取某天在当月是否有项目进展（读缓存）
+const getDayProgress = (day: number) => {
+  const key = getMonthKey(currentYear.value, currentMonth.value)
+  const days = progressDaysByMonth.value[key] || []
+  return days.find(d => d.day === day) || null
+}
+
 
 
 // 工作日志数据
@@ -173,12 +187,14 @@ const nextMonthDays = computed(() => {
 })
 
 // 方法
-const prevMonth = () => {
+const prevMonth = async () => {
   currentDate.value = new Date(currentYear.value, currentMonth.value - 1, 1)
+  await loadProgressDaysOfMonth()
 }
 
-const nextMonth = () => {
+const nextMonth = async () => {
   currentDate.value = new Date(currentYear.value, currentMonth.value + 1, 1)
+  await loadProgressDaysOfMonth()
 }
 
 const isToday = (day: number) => {
@@ -200,29 +216,26 @@ const hasLog = (day: number) => {
   return workLogs.value.some(log => log.date === dateStr)
 }
 
-// 检查某一天是否有活动记录
+// 检查某一天是否有项目进展（读月份缓存，不再逐日查库）
 const hasActivities = (day: number) => {
-  const dateStr = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-  const activities = dailyActivities.value[dateStr]
-  return activities && activities.length > 0
+  return !!getDayProgress(day)
 }
 
 // 单元格 hover 提示，明确区分 AI 日志与项目进展
 const getDayTooltip = (day: number) => {
   const dateStr = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   const log = workLogs.value.find((l: any) => l.date === dateStr)
-  const activities = dailyActivities.value[dateStr]
+  const meta = getDayProgress(day)
   const hasAiLog = !!(log && log.content)
-  const hasProgress = !!(activities && activities.length)
   if (hasAiLog) {
     const isAutoFilled = typeof log.content === 'string' && log.content.startsWith('【系统补齐')
     const tag = isAutoFilled ? '系统补齐自项目进展' : '已生成 AI 工作日志'
-    return hasProgress
-      ? `${dateStr} · ${tag}（含 ${activities.length} 条项目进展）`
+    return meta
+      ? `${dateStr} · ${tag}（另有 ${meta.count} 条项目进展）`
       : `${dateStr} · ${tag}`
   }
-  if (hasProgress) {
-    return `${dateStr} · ${activities.length} 条项目进展（未生成工作日志）`
+  if (meta) {
+    return `${dateStr} · ${meta.count} 条项目进展（未生成工作日志）`
   }
   return dateStr
 }
@@ -309,68 +322,24 @@ const getTodayActivities = async () => {
   }
 }
 
-// 加载本月所有日期的活动记录和工作日志
-const loadMonthlyActivities = async () => {
+// 加载当月“有项目进展的日期”（后端缓存/一次查询，替代原来的逐日轮询）
+const loadProgressDaysOfMonth = async () => {
+  const key = getMonthKey(currentYear.value, currentMonth.value)
+  if (progressDaysByMonth.value[key]) return
+
   try {
-    const today = new Date()
-    const currentYear = today.getFullYear()
-    const currentMonth = today.getMonth()
-    
-    // 本月第一天
-    const firstDay = new Date(currentYear, currentMonth, 1)
-    // 今天
-    const lastDay = new Date(currentYear, currentMonth, today.getDate())
-    
-    // 清空之前的活动记录
-    dailyActivities.value = {}
-    
-    // 遍历从本月1号到今天的所有日期
-    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0]
-      try {
-        // 调用后端API获取当天的项目更新信息
-        const response = await fetch(`/api/work-log/date-activities/${dateStr}`)
-        if (response.ok) {
-          const activities = await response.json()
-          if (activities && activities.length > 0) {
-            dailyActivities.value[dateStr] = activities
-          }
-        }
-      } catch (error) {
-        console.error(`获取${dateStr}的活动失败:`, error)
+    const response = await fetch(
+      `/api/projects/month-days?year=${currentYear.value}&month=${currentMonth.value + 1}`
+    )
+    if (response.ok) {
+      const data = await response.json()
+      progressDaysByMonth.value = {
+        ...progressDaysByMonth.value,
+        [key]: Array.isArray(data.days) ? data.days : []
       }
-    }
-    
-    console.log('加载的月度活动记录:', dailyActivities.value)
-    
-    // 加载所有工作日志
-    try {
-      // 获取当前登录用户ID
-      let currentUserId = 1 // 默认值
-      const userStr = sessionStorage.getItem('user')
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr)
-          currentUserId = user.id || 1
-        } catch (e) {
-          console.error('解析用户信息失败:', e)
-        }
-      }
-      
-      const logsResponse = await fetch(`/api/work-log/user/${currentUserId}`)
-      if (logsResponse.ok) {
-        const logsData = await logsResponse.json()
-        workLogs.value = logsData.map((log: any) => ({
-          date: log.log_date,
-          content: log.work_log_by_ai
-        }))
-        console.log('加载的工作日志:', workLogs.value)
-      }
-    } catch (error) {
-      console.error('加载工作日志失败:', error)
     }
   } catch (error) {
-    console.error('加载月度活动记录失败:', error)
+    console.error(`加载${key}进展日期失败:`, error)
   }
 }
 
@@ -549,8 +518,8 @@ onMounted(async () => {
       }
     }
     
-    // 加载本月所有日期的活动记录
-    await loadMonthlyActivities()
+    // 加载当月有项目进展的日期（渲染日历标记，走缓存不逐日查库）
+    await loadProgressDaysOfMonth()
     
     // 自动获取今天的活动记录
     const activities = await getTodayActivities()
