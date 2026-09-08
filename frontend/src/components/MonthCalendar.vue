@@ -216,12 +216,12 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .calendar-header h4 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #5D5A6D;
   white-space: nowrap;
@@ -232,9 +232,9 @@ onMounted(() => {
   color: #fff;
   border: none;
   border-radius: 8px;
-  width: 30px;
-  height: 30px;
-  font-size: 15px;
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(195, 177, 225, 0.3);
@@ -250,8 +250,8 @@ onMounted(() => {
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: 3px;
+  margin-bottom: 3px;
 }
 
 .weekday {
@@ -259,13 +259,13 @@ onMounted(() => {
   font-size: 11px;
   font-weight: 600;
   color: #8B8899;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 3px;
 }
 
 .calendar-day {
@@ -280,6 +280,7 @@ onMounted(() => {
   position: relative;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
+  min-height: 28px;
 }
 
 .calendar-day:hover {
@@ -324,7 +325,7 @@ onMounted(() => {
 
 .today-indicator {
   position: absolute;
-  bottom: 3px;
+  bottom: 2px;
   width: 5px;
   height: 5px;
   background: #fff;
@@ -334,8 +335,8 @@ onMounted(() => {
 
 .log-indicator {
   position: absolute;
-  top: 3px;
-  right: 3px;
+  top: 2px;
+  right: 2px;
   width: 5px;
   height: 5px;
   background: linear-gradient(135deg, #FF9A8B, #FFB7B2);
@@ -347,7 +348,7 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 10px;
   color: #8B8899;
   justify-content: center;

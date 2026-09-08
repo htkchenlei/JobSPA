@@ -379,7 +379,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 1fr 1.18fr 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 @media (max-width: 1100px) {
@@ -390,11 +390,23 @@ onMounted(async () => {
 
 .calendar-card {
   min-width: 0;
-  min-height: 340px;
+  height: 380px;
+  display: flex;
+  flex-direction: column;
 }
 
 .calendar-embed {
   padding: 8px 12px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-embed .month-calendar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .content-card {
@@ -444,22 +456,23 @@ onMounted(async () => {
 }
 
 /* ---- 图表 ---- */
-.chart-card {
-  min-height: 360px;
+.chart-card,
+.updates-card {
+  height: 380px;
+  display: flex;
+  flex-direction: column;
 }
 .chart-wrapper {
   padding: 16px 22px 8px;
-  height: 310px;
+  flex: 1;
+  min-height: 280px;
 }
 
 /* ---- 更新列表 ---- */
-.updates-card {
-  min-height: 360px;
-}
 .updates-list {
   padding: 8px 16px;
-  max-height: 330px;
   overflow-y: auto;
+  flex: 1;
 }
 
 .update-item {
