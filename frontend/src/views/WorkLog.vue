@@ -330,8 +330,11 @@ const getTodayActivities = async () => {
   }
 }
 
-// 加载当月“有项目进展的日期”（后端缓存/一次查询，替代原来的逐日轮询）。
-// 后端没有 month-days 路由时（老部署）自动降级用逐日接口补全。
+let monthCacheWarned = false
+
+// 加载当月“有项目进展的日期”：只依赖后端缓存接口（/api/projects/month-days）。
+// 缓存文件命中的情况下后端毫秒级返回，日历颜色立即出现。
+// 注意：绝不在此做“逐日请求”兜底——那会让老后端下颜色等几十秒才出现。
 const loadProgressDaysOfMonth = async () => {
   const key = getMonthKey(currentYear.value, currentMonth.value)
   if (progressDaysByMonth.value[key]) return
@@ -340,15 +343,16 @@ const loadProgressDaysOfMonth = async () => {
     const response = await fetch(
       `/api/projects/month-days?year=${currentYear.value}&month=${currentMonth.value + 1}`
     )
-    // 404/405 表示老部署没有缓存接口，降级到逐日模式
-    if (response.status === 404 || response.status === 405) {
-      await fallbackLoadDaysPerDay(key)
-      return
-    }
-    if (!response.ok) return
     const ct = response.headers.get('content-type') || ''
-    if (!ct.includes('application/json')) {
-      await fallbackLoadDaysPerDay(key)
+    if (!response.ok || !ct.includes('application/json')) {
+      if (!monthCacheWarned) {
+        monthCacheWarned = true
+        console.warn(
+          `缓存接口 /api/projects/month-days 不可用，日历进度标记不可用。` +
+          `请确认后端已更新 project_routes.py 并重启服务。`
+        )
+      }
+      progressDaysByMonth.value = { ...progressDaysByMonth.value, [key]: [] }
       return
     }
     const data = await response.json()
@@ -357,29 +361,12 @@ const loadProgressDaysOfMonth = async () => {
       [key]: Array.isArray(data.days) ? data.days : []
     }
   } catch (error) {
-    console.error(`加载${key}进展日期失败:`, error)
-    await fallbackLoadDaysPerDay(key)
-  }
-}
-
-// 旧部署兼容：用每日的活动接口拼出当月有进展的日期
-const fallbackLoadDaysPerDay = async (key: string) => {
-  const year = currentYear.value
-  const month = currentMonth.value
-  const today = new Date()
-  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month
-  const endDay = isCurrentMonth
-    ? today.getDate()
-    : new Date(year, month + 1, 0).getDate()
-  const days: { day: number; count: number }[] = []
-  for (let d = 1; d <= endDay; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    const activities = await getDateActivities(dateStr)
-    if (activities.length > 0) {
-      days.push({ day: d, count: activities.length })
+    if (!monthCacheWarned) {
+      monthCacheWarned = true
+      console.warn(`加载${key}进展日期失败，请检查后端服务:`, error)
     }
+    progressDaysByMonth.value = { ...progressDaysByMonth.value, [key]: [] }
   }
-  progressDaysByMonth.value = { ...progressDaysByMonth.value, [key]: days }
 }
 
 // 调用大模型API生成日志
@@ -543,58 +530,61 @@ onMounted(async () => {
   // 设置今天为选中日期
   const today = new Date()
   selectedDate.value = today.getDate()
-  
-  try {
-    // 获取当前登录用户ID
-    let currentUserId = 1 // 默认值
-    const userStr = sessionStorage.getItem('user')
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr)
-        currentUserId = user.id || 1
-      } catch (e) {
-        console.error('解析用户信息失败:', e)
-      }
+  const todayStr = today.toISOString().split('T')[0]
+
+  // 获取当前登录用户ID
+  let currentUserId = 1 // 默认值
+  const userStr = sessionStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      currentUserId = user.id || 1
+    } catch (e) {
+      console.error('解析用户信息失败:', e)
     }
-    
-    // 加载当月有项目进展的日期（渲染日历标记，走缓存不逐日查库）
-    await loadProgressDaysOfMonth()
-    
-    // 自动获取今天的活动记录
-    const activities = await getTodayActivities()
-    currentActivities.value = activities
-    
-    // 构建提示词但不显示，只在生成日志时使用
-    if (activities.length > 0) {
-      currentPrompt.value = `假设你是一位售前工程师，为了向公司展示项目进度和工作进度，请根据以下今天的活动记录，生成一份工作日志，字数不少于40字：\n${activities.join('\n')}`
-    }
-    
-    // 加载今天的工作日志
-    const todayStr = today.toISOString().split('T')[0]
-    const logResponse = await fetch(`/api/work-log/date/${todayStr}`)
-    
-    if (logResponse.ok) {
-      const logData = await logResponse.json()
-      if (logData.work_log_by_ai) {
-        selectedLog.value = {
-          date: todayStr,
-          content: logData.work_log_by_ai
-        }
-      }
-    }
-    
-    // 加载所有工作日志
-    const logsResponse = await fetch(`/api/work-log/user/${currentUserId}`)
-    if (logsResponse.ok) {
-      const logsData = await logsResponse.json()
-      workLogs.value = logsData.map((log: any) => ({
-        date: log.log_date,
-        content: log.work_log_by_ai
-      }))
-    }
-  } catch (error) {
-    console.error('初始化工作日志失败:', error)
   }
+
+  // 并行初始化：日历颜色只等缓存接口一次请求，不被今日活动/AI日志串行拖慢
+  await Promise.all([
+    // ① 当月有进展的日期（渲染日历底色）
+    loadProgressDaysOfMonth(),
+
+    // ② 今天的活动记录 + 提示词
+    (async () => {
+      try {
+        const activities = await getTodayActivities()
+        currentActivities.value = activities
+        if (activities.length > 0) {
+          currentPrompt.value = `假设你是一位售前工程师，为了向公司展示项目进度和工作进度，请根据以下今天的活动记录，生成一份工作日志，字数不少于40字：\n${activities.join('\n')}`
+        }
+      } catch (e) {
+        console.error('获取今日活动失败:', e)
+      }
+    })(),
+
+    // ③ 今天的工作日志 + 全部 AI 日志（hasLog 深绿标记）
+    (async () => {
+      try {
+        const logResponse = await fetch(`/api/work-log/date/${todayStr}`)
+        if (logResponse.ok) {
+          const logData = await logResponse.json()
+          if (logData && logData.work_log_by_ai) {
+            selectedLog.value = { date: todayStr, content: logData.work_log_by_ai }
+          }
+        }
+        const logsResponse = await fetch(`/api/work-log/user/${currentUserId}`)
+        if (logsResponse.ok) {
+          const logsData = await logsResponse.json()
+          workLogs.value = logsData.map((log: any) => ({
+            date: log.log_date,
+            content: log.work_log_by_ai
+          }))
+        }
+      } catch (e) {
+        console.error('加载工作日志失败:', e)
+      }
+    })()
+  ])
 })
 
 // 组件卸载时清理
