@@ -291,18 +291,26 @@ const selectDate = async (day: number) => {
   }
 }
 
-// 获取指定日期的活动
+// 获取指定日期的活动（按顺序尝试多个后端接口，并对非 JSON 响应做容错，
+// 避免部署版本不一致时拿到 SPA 兜底的 HTML 引发 SyntaxError）
 const getDateActivities = async (dateStr: string) => {
-  try {
-    // 调用后端API获取指定日期的项目更新信息
-    const response = await fetch(`/api/work-log/date-activities/${dateStr}`)
-    const activities = await response.json()
-    
-    return activities
-  } catch (error) {
-    console.error('获取活动失败:', error)
-    return []
+  const urls = [
+    `/api/projects/date-progress/${dateStr}`,
+    `/api/work-log/date-activities/${dateStr}`
+  ]
+  for (const url of urls) {
+    try {
+      const response = await fetch(url)
+      if (!response.ok) continue
+      const ct = response.headers.get('content-type') || ''
+      if (!ct.includes('application/json')) continue
+      const data = await response.json()
+      return Array.isArray(data) ? data : []
+    } catch (error) {
+      console.error(`通过${url}获取${dateStr}活动失败:`, error)
+    }
   }
+  return []
 }
 
 // 获取今天的活动
@@ -322,7 +330,8 @@ const getTodayActivities = async () => {
   }
 }
 
-// 加载当月“有项目进展的日期”（后端缓存/一次查询，替代原来的逐日轮询）
+// 加载当月“有项目进展的日期”（后端缓存/一次查询，替代原来的逐日轮询）。
+// 后端没有 month-days 路由时（老部署）自动降级用逐日接口补全。
 const loadProgressDaysOfMonth = async () => {
   const key = getMonthKey(currentYear.value, currentMonth.value)
   if (progressDaysByMonth.value[key]) return
@@ -331,16 +340,46 @@ const loadProgressDaysOfMonth = async () => {
     const response = await fetch(
       `/api/projects/month-days?year=${currentYear.value}&month=${currentMonth.value + 1}`
     )
-    if (response.ok) {
-      const data = await response.json()
-      progressDaysByMonth.value = {
-        ...progressDaysByMonth.value,
-        [key]: Array.isArray(data.days) ? data.days : []
-      }
+    // 404/405 表示老部署没有缓存接口，降级到逐日模式
+    if (response.status === 404 || response.status === 405) {
+      await fallbackLoadDaysPerDay(key)
+      return
+    }
+    if (!response.ok) return
+    const ct = response.headers.get('content-type') || ''
+    if (!ct.includes('application/json')) {
+      await fallbackLoadDaysPerDay(key)
+      return
+    }
+    const data = await response.json()
+    progressDaysByMonth.value = {
+      ...progressDaysByMonth.value,
+      [key]: Array.isArray(data.days) ? data.days : []
     }
   } catch (error) {
     console.error(`加载${key}进展日期失败:`, error)
+    await fallbackLoadDaysPerDay(key)
   }
+}
+
+// 旧部署兼容：用每日的活动接口拼出当月有进展的日期
+const fallbackLoadDaysPerDay = async (key: string) => {
+  const year = currentYear.value
+  const month = currentMonth.value
+  const today = new Date()
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month
+  const endDay = isCurrentMonth
+    ? today.getDate()
+    : new Date(year, month + 1, 0).getDate()
+  const days: { day: number; count: number }[] = []
+  for (let d = 1; d <= endDay; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    const activities = await getDateActivities(dateStr)
+    if (activities.length > 0) {
+      days.push({ day: d, count: activities.length })
+    }
+  }
+  progressDaysByMonth.value = { ...progressDaysByMonth.value, [key]: days }
 }
 
 // 调用大模型API生成日志

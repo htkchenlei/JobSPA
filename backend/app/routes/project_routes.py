@@ -137,6 +137,39 @@ def get_progress_month_days():
         print(f"查询当月进展日期失败: {e}")
         return jsonify({'days': []}), 200
 
+# 获取某日的项目进展/活动记录。
+# 这是 /api/work-log/date-activities/<date> 的等价实现，老部署若缺少该路由，
+# 工作日志页面点击日期时会拿到 SPA 兜底的 HTML 报 JSON 解析错。
+# 部署此接口后前端优先调用它，缺失时再回退旧接口。
+@bp.route('/date-progress/<string:log_date>', methods=['GET'])
+def get_project_date_progress(log_date):
+    from sqlalchemy import text
+    try:
+        with db.engine.connect() as conn:
+            rows = conn.execute(
+                text(
+                    "SELECT pp.project_id, p.name as project_name, pp.update_content "
+                    "FROM project_progress pp JOIN projects p ON pp.project_id = p.id "
+                    "WHERE pp.update_date = :d"
+                ),
+                {'d': log_date}
+            ).fetchall()
+
+        activities = []
+        grouped = {}
+        for row in rows:
+            name = row[1]
+            grouped.setdefault(name, []).append(row[2])
+        for name, contents in grouped.items():
+            if len(contents) == 1:
+                activities.append(f"{name}: {contents[0]}")
+            else:
+                activities.append(f"{name}:\n" + "\n".join(f"- {c}" for c in contents))
+        return jsonify(activities), 200
+    except Exception as e:
+        print(f"查询{log_date}活动记录失败: {e}")
+        return jsonify([]), 200
+
 # 获取项目列表
 @bp.route('/', methods=['GET'])
 def get_projects():
