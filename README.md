@@ -11,7 +11,7 @@
 - 最近项目更新动态
 
 ### 📋 项目管理
-- 项目全生命周期管理（立项 → 招投标 → 已中标 → 已完成）
+- 项目全生命周期管理，项目阶段统一为 5 档：**立项中 / 已立项 / 招投标 / 已中标 / 已完成**（旧 1-13 细分已归一化，详见 `backend/migrate_stage_5.py`）
 - 项目进度历史记录
 - 项目自动分组展示：
   - **进行中项目**：近 1 个月内有更新
@@ -29,8 +29,9 @@
 ### 📈 统计分析
 - 各省份项目分布
 - 项目金额统计
-- 阶段分布分析
+- 阶段分布分析（按 5 档）
 - 月度趋势图
+- 周日志数量（近 12 周）与月日志数量（近 12 个月）统计图（统计手动录入的项目进展条数）
 
 ### 📝 工作日志
 - 日历视图展示
@@ -131,6 +132,34 @@ docker-compose down
   ```bash
   docker compose exec jobspa python cleanup_sync_worklog.py
   ```
+
+#### 7. 从已有部署做增量更新（推荐）
+
+本地仓库 `main` 有新提交时，**不要整包上传/重新 Clone**，只把镜像相关目录里变化的部分覆盖到 NAS 的 `JobSPA/` 项目目录：
+
+1. 在本地执行前端构建（产物会放入 `frontend/dist`）：
+   ```bash
+   cd frontend && npm run build
+   ```
+2. 覆盖以下内容到 NAS 项目目录（对应相对路径）：
+   - `frontend/dist/`（整个目录，Dockerfile 用 `COPY frontend/dist` 提供页面）
+   - `backend/` 下本次变更的 `.py` 源码（如 `app/routes/*.py`、`app/models/*.py`、`init_db.py`、新增脚本等）
+   - 若改动了启动方式：`docker-compose.yml`
+   > 新增的 `.py` 文件必须一并上传，否则容器启动时会 `ModuleNotFoundError`。
+3. 若有数据库结构/数据迁移脚本（如 `backend/migrate_stage_5.py`），先在容器内执行（建议先备份）：
+   ```bash
+   cp data/projectmanagement.db data/projectmanagement.db.bak
+   docker compose exec jobspa python migrate_stage_5.py   # 阶段 1-13 → 5 档
+   ```
+4. 重建并启动应用镜像（业务代码变更通常只需重建应用层，基础镜像 `jobspa-base` 已构建过一次即可复用）：
+   ```bash
+   docker compose up -d --build
+   docker compose logs -f
+   ```
+   > 若本机从未构建过 `jobspa-base`（报 `pulling ... jobspa-base ... 403`），先执行：
+   > ```bash
+   > docker build -f Dockerfile.base -t jobspa-base:latest .
+   > ```
 
 ### 方式二：本地开发
 
@@ -284,6 +313,13 @@ python init_db.py  # 初始化数据库
 5. 提交 Pull Request
 
 ## 🆕 更新记录
+
+### 2026-09-09
+
+- **项目阶段归一化为 5 档**：`立项中 / 已立项 / 招投标 / 已中标 / 已完成`。后端 `STAGE_MAP`、前端项目/仪表盘/高级查询/统计均改为 5 档映射；数据库迁移脚本 `backend/migrate_stage_5.py`（1-2→1、3-5→2、6-8→3、9-11→4、12-13→5）。
+- **统计分析**：新增「周日志数量（近 12 周）」与「月日志数量（近 12 个月）」柱状图，统计手动录入的 `project_progress` 条数，接口 `GET /api/projects/log-statistics?interval=week|month&size=12`。
+- **工作日志**：改为按日期跨用户加载真实 AI 日志（`selectDate`/`onMounted` 统一走 `/api/work-log/date/<date>`），修复“从仪表盘跳转可见、切换日期后不显示”的问题；不再把项目进展自动补齐成工作日志；新增 `backend/cleanup_sync_worklog.py` 清理早期“系统补齐”占位记录。
+- **仪表盘**：三栏等高布局（项目阶段分布 / 工作日志日历 / 最近更新），中间嵌入可复用日历组件 `MonthCalendar.vue`，点击日期直达工作日志对应日。
 
 ### 2026-09-08
 
