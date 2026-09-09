@@ -119,11 +119,11 @@ const projectChart = ref<HTMLCanvasElement | null>(null)
 const projectChartInstance = ref<Chart | null>(null)
 
 const STAGE_MAP = {
-  '立项中': [1, 2],
-  '已立项': [3, 4, 5],
-  '招投标': [6, 7, 8],
-  '已中标': [9, 10, 11],
-  '已完成': [12, 13]
+  '立项中': [1],
+  '已立项': [2],
+  '招投标': [3],
+  '已中标': [4],
+  '已完成': [5]
 }
 
 const getAuthHeader = () => {
@@ -137,8 +137,8 @@ const fetchProjectStats = async () => {
     if (response.ok) {
       const projects = await response.json()
       projectStats.value.total = projects.length
-      projectStats.value.inProgress = projects.filter((p: any) => p.stage < 12).length
-      projectStats.value.completed = projects.filter((p: any) => p.stage >= 12).length
+      projectStats.value.inProgress = projects.filter((p: any) => parseInt(p.stage) < 5).length
+      projectStats.value.completed = projects.filter((p: any) => parseInt(p.stage) === 5).length
       return projects
     }
     return []

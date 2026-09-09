@@ -51,6 +51,22 @@
           <canvas ref="maintenanceTrendChart"></canvas>
         </div>
       </div>
+
+      <!-- 周日志数量统计 -->
+      <div class="chart-card">
+        <h4>周日志数量（近12周）</h4>
+        <div class="chart">
+          <canvas ref="weekLogChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 月日志数量统计 -->
+      <div class="chart-card">
+        <h4>月日志数量（近12个月）</h4>
+        <div class="chart">
+          <canvas ref="monthLogChart"></canvas>
+        </div>
+      </div>
     </div>
     
     <!-- 表格容器 -->
@@ -114,19 +130,21 @@ const stageCountChart = ref(null)
 const monthlyTrendChart = ref(null)
 const scaleDistributionChart = ref(null)
 const maintenanceTrendChart = ref(null)
+const weekLogChart = ref(null)
+const monthLogChart = ref(null)
 
 // 数据
 const projects = ref([])
 const salesStatistics = ref([])
 const stageStatistics = ref([])
 
-// 项目阶段映射
+// 项目阶段映射（统一 5 档）
 const stages = {
-  '立项中': [1, 2],
-  '已立项': [3, 4, 5],
-  '招投标': [6, 7, 8],
-  '已中标': [9, 10, 11],
-  '已完成': [12, 13]
+  '立项中': [1],
+  '已立项': [2],
+  '招投标': [3],
+  '已中标': [4],
+  '已完成': [5]
 }
 
 // 从API获取项目数据
@@ -297,10 +315,10 @@ const calculateProvinceDetailedStats = (projectData) => {
       const amount = parseFloat(project.scale) || 0
       provinceStats[project.province].totalAmount += amount
       
-      // 判断项目是否已完成
+      // 判断项目是否已完成（5 = 已完成）
       if (project.stage) {
         const stageNum = parseInt(project.stage)
-        if (stageNum >= 12 && stageNum <= 13) {
+        if (stageNum === 5) {
           // 已完成项目
           provinceStats[project.province].completedCount++
           provinceStats[project.province].completedAmount += amount
@@ -490,9 +508,9 @@ const calculateCompletedAmountTrend = (projectData) => {
       // 只统计当年的数据
       if (year === currentYear) {
         const stageNum = parseInt(project.stage)
-        
-        // 阶段由1-8变为9-13（即已中标或已完成阶段）
-        if (stageNum >= 9 && stageNum <= 13) {
+
+        // 已中标(4)及以上视为进入高阶段/完成统计
+        if (stageNum >= 4) {
           const amount = parseFloat(project.scale) || 0
           monthlyAmount[month] = (monthlyAmount[month] || 0) + amount
         }
@@ -542,6 +560,70 @@ const drawMaintenanceTrendChart = (completedAmountTrend) => {
   })
 }
 
+// 周日志数量（近12周）柱状图
+const drawWeekLogChart = (labels, values) => {
+  if (!weekLogChart.value) return
+  new Chart(weekLogChart.value.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '日志数量',
+        data: values,
+        backgroundColor: '#A8E6CF',
+        borderColor: '#7DD3C0',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  })
+}
+
+// 月日志数量（近12个月）柱状图
+const drawMonthLogChart = (labels, values) => {
+  if (!monthLogChart.value) return
+  new Chart(monthLogChart.value.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '日志数量',
+        data: values,
+        backgroundColor: '#7EC8E3',
+        borderColor: '#6BB8D3',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  })
+}
+
+// 获取日志数量趋势（interval: week|month）
+const fetchLogStat = async (interval) => {
+  try {
+    const resp = await fetch(`/api/projects/log-statistics?interval=${interval}&size=12`)
+    if (resp.ok) {
+      const data = await resp.json()
+      if (data && Array.isArray(data.labels) && Array.isArray(data.values)) {
+        return data
+      }
+    }
+  } catch (e) {
+    console.error(`获取${interval}日志统计失败:`, e)
+  }
+  return null
+}
+
 // 初始化
 onMounted(async () => {
   // 获取项目数据
@@ -566,6 +648,12 @@ onMounted(async () => {
   drawMonthlyTrendChart(monthlyTrend)
   drawScaleDistributionChart(scaleDistribution)
   drawMaintenanceTrendChart(completedAmountTrend)
+
+  // 周/月日志数量统计图
+  const weekStat = await fetchLogStat('week')
+  if (weekStat) drawWeekLogChart(weekStat.labels, weekStat.values)
+  const monthStat = await fetchLogStat('month')
+  if (monthStat) drawMonthLogChart(monthStat.labels, monthStat.values)
 })
 </script>
 

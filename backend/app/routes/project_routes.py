@@ -16,21 +16,13 @@ def get_east_8_time():
 # 创建蓝图
 bp = Blueprint('projects', __name__, url_prefix='/api/projects')
 
-# 项目阶段映射
+# 项目阶段映射（统一 5 档）
 STAGE_MAP = {
-    1: '立项中|初步沟通',
-    2: '立项中|提交立项申请',
-    3: '已立项|编制解决方案',
-    4: '已立项|编制设计方案',
-    5: '已立项|编制招投标参数',
-    6: '招投标|编制参数',
-    7: '招投标|已挂网',
-    8: '招投标|等待结果',
-    9: '已中标|已公示',
-    10: '已中标|已获取中标通知书',
-    11: '已中标|签署合同',
-    12: '已完成|转入项目实施',
-    13: '已完成|项目结束'
+    1: '立项中',
+    2: '已立项',
+    3: '招投标',
+    4: '已中标',
+    5: '已完成'
 }
 
 # 获取最近的更新记录（从project_progress表获取）
@@ -169,6 +161,79 @@ def get_project_date_progress(log_date):
     except Exception as e:
         print(f"查询{log_date}活动记录失败: {e}")
         return jsonify([]), 200
+
+# 周/月日志数量趋势：统计手动录入的项目进展（project_progress）条数，
+# interval=week|month，size 为最近多少周/月，默认 12
+@bp.route('/log-statistics', methods=['GET'])
+def get_log_statistics():
+    from sqlalchemy import text
+    from datetime import timedelta
+
+    interval = request.args.get('interval', 'month')
+    try:
+        size = min(max(int(request.args.get('size', 12)), 1), 24)
+    except (TypeError, ValueError):
+        size = 12
+
+    today = date.today()
+    labels = []
+    keys = []
+    key_to_idx = {}
+
+    if interval == 'week':
+        # 本周一
+        cur_monday = today - timedelta(days=today.weekday())
+        for i in range(size - 1, -1, -1):
+            d = cur_monday - timedelta(weeks=i)
+            k = d.isoformat()
+            key_to_idx[k] = len(labels)
+            labels.append(f"{d.month}/{d.day}")
+            keys.append(k)
+    else:
+        # 近 N 个月（含当月）
+        yy, mm = today.year, today.month
+        rev = []
+        for _ in range(size):
+            rev.append((yy, mm))
+            mm -= 1
+            if mm == 0:
+                yy -= 1
+                mm = 12
+        for y, m in reversed(rev):
+            k = f"{y:04d}-{m:02d}"
+            key_to_idx[k] = len(labels)
+            labels.append(f"{y:04d}-{m:02d}")
+            keys.append(k)
+
+    values = [0] * len(labels)
+    try:
+        with db.engine.connect() as conn:
+            rows = conn.execute(
+                text(
+                    "SELECT update_date, COUNT(*) FROM project_progress "
+                    "WHERE update_date >= :s GROUP BY update_date"
+                ),
+                {'s': keys[0]}
+            ).fetchall()
+
+        for row in rows:
+            raw = str(row[0])[:10]
+            try:
+                d = datetime.strptime(raw, '%Y-%m-%d').date()
+            except ValueError:
+                continue
+            if interval == 'week':
+                monday = d - timedelta(days=d.weekday())
+                k = monday.isoformat()
+            else:
+                k = f"{d.year:04d}-{d.month:02d}"
+            idx = key_to_idx.get(k)
+            if idx is not None:
+                values[idx] += int(row[1])
+        return jsonify({'labels': labels, 'values': values}), 200
+    except Exception as e:
+        print(f"查询日志数量趋势失败: {e}")
+        return jsonify({'labels': labels, 'values': values}), 200
 
 # 获取项目列表
 @bp.route('/', methods=['GET'])

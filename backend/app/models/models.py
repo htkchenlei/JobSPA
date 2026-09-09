@@ -39,20 +39,13 @@ class Project(db.Model):
     city = db.Column(db.String(100), nullable=True)
     district = db.Column(db.String(100), nullable=True)
     
-    # 项目阶段含义：
-    # 1: '立项中|初步沟通'
-    # 2: '立项中|提交立项申请'
-    # 3: '已立项|编制解决方案'
-    # 4: '已立项|编制设计方案'
-    # 5: '已立项|编制招投标参数'
-    # 6: '招投标|编制参数'
-    # 7: '招投标|已挂网'
-    # 8: '招投标|等待结果'
-    # 9: '已中标|已公示'
-    # 10: '已中标|已获取中标通知书'
-    # 11: '已中标|签署合同'
-    # 12: '已完成|转入项目实施'
-    # 13: '已完成|项目结束'
+    # 项目阶段含义（统一 5 档）：
+    # 1: '立项中'
+    # 2: '已立项'
+    # 3: '招投标'
+    # 4: '已中标'
+    # 5: '已完成'
+
     
     # 项目进展记录
     progresses = db.relationship('ProjectProgress', backref='project', lazy=True)

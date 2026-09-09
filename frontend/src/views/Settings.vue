@@ -251,7 +251,7 @@
             </div>
             <div class="api-response">
               <h4>响应示例：</h4>
-              <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 2, "stage_text": "立项中"}</pre>
+              <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 2, "stage_text": "已立项"}</pre>
             </div>
           </div>
         </div>
@@ -321,7 +321,7 @@
             </div>
             <div class="api-response">
               <h4>响应示例：</h4>
-              <pre>[{"value": 1, "label": "立项中"}, {"value": 2, "label": "立项中"}]</pre>
+              <pre>[{"value": 1, "label": "立项中"}, {"value": 2, "label": "已立项"}, {"value": 3, "label": "招投标"}, {"value": 4, "label": "已中标"}, {"value": 5, "label": "已完成"}]</pre>
             </div>
           </div>
         </div>

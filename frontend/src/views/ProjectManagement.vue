@@ -421,21 +421,13 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
-// 项目阶段映射
+// 项目阶段映射（统一 5 档）
 const STAGE_MAP = {
-  1: '立项中|初步沟通',
-  2: '立项中|提交立项申请',
-  3: '已立项|编制解决方案',
-  4: '已立项|编制设计方案',
-  5: '已立项|编制招投标参数',
-  6: '招投标|编制参数',
-  7: '招投标|已挂网',
-  8: '招投标|等待结果',
-  9: '已中标|已公示',
-  10: '已中标|已获取中标通知书',
-  11: '已中标|签署合同',
-  12: '已完成|转入项目实施',
-  13: '已完成|项目结束'
+  1: '立项中',
+  2: '已立项',
+  3: '招投标',
+  4: '已中标',
+  5: '已完成'
 }
 
 // 中国省级行政区
@@ -651,11 +643,11 @@ const getUserName = (userId) => {
 // 获取阶段类名
 const getStageClass = (stage) => {
   const stageNum = parseInt(stage)
-  if (stageNum >= 1 && stageNum <= 2) return 'stage-initial'
-  if (stageNum >= 3 && stageNum <= 5) return 'stage-approved'
-  if (stageNum >= 6 && stageNum <= 8) return 'stage-bidding'
-  if (stageNum >= 9 && stageNum <= 11) return 'stage-awarded'
-  if (stageNum >= 12 && stageNum <= 13) return 'stage-completed'
+  if (stageNum === 1) return 'stage-initial'
+  if (stageNum === 2) return 'stage-approved'
+  if (stageNum === 3) return 'stage-bidding'
+  if (stageNum === 4) return 'stage-awarded'
+  if (stageNum === 5) return 'stage-completed'
   return 'stage-unknown'
 }
 
@@ -1176,16 +1168,16 @@ const getDaysSinceUpdate = (project) => {
 const filteredProjects = computed(() => {
   let filtered = []
   if (showCompletedOnly.value) {
-    // 只显示已完成的项目（stage为12或13）
+    // 只显示已完成的项目（stage 为 5）
     filtered = projects.value.filter(project => {
       const stage = parseInt(project.stage)
-      return stage === 12 || stage === 13
+      return stage === 5
     })
   } else {
-    // 不显示已完成的项目（stage不为12或13）
+    // 不显示已完成的项目（stage 不为 5）
     filtered = projects.value.filter(project => {
       const stage = parseInt(project.stage)
-      return stage !== 12 && stage !== 13
+      return stage !== 5
     })
   }
   
@@ -1253,7 +1245,7 @@ const staleProjects = computed(() => {
 const completedProjects = computed(() => {
   const filtered = projects.value.filter(project => {
     const stage = parseInt(project.stage)
-    return stage === 12 || stage === 13
+    return stage === 5
   })
   
   // 排序：按照每个项目最新的更新内容的日期和时间来排序，最新的排在最前面
