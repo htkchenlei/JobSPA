@@ -126,9 +126,10 @@ docker-compose down
 
 - 容器**启动时会先自动执行 `init_db.py`（幂等）再拉起 gunicorn**：即使挂载的 `./data` 目录是空库，也会自动建表并创建默认账号 `admin/123456`，避免出现 `no such table: users`。
 - 后端会在数据目录自动生成 `progress_days_cache.json`（工作日志日历缓存），**无需手工创建/上传**；该文件请勿提交到 Git。
-- 如果历史 `work_log` 表中缺少某些日期的日志，可在容器内执行数据补齐（幂等，可重复运行）：
+- **工作日志规则**：只有用户在页面手动点击「生成今日日志」并保存才写入 `work_log`；不会自动生成，也不会把项目进展自动补齐成工作日志。日历的颜色标记由手动录入的项目进展（`project_progress` → `month-days` 缓存）驱动。
+- 若历史数据库中曾存在“系统补齐”占位日志（`created_by_ai='系统补齐'`），可清理（不影响手动 AI 日志与日历颜色）：
   ```bash
-  docker compose exec jobspa python sync_worklog.py
+  docker compose exec jobspa python cleanup_sync_worklog.py
   ```
 
 ### 方式二：本地开发

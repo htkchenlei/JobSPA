@@ -285,12 +285,33 @@ const selectDate = async (day: number) => {
   } else {
     currentPrompt.value = ''
   }
-  
-  // 检查是否有该日期的工作日志
-  const log = workLogs.value.find(log => log.date === dateStr)
-  if (log && log.content) {
-    // 如果有日志，显示日志内容
-    selectedLog.value = log
+
+  // 按日期加载该日的工作日志（跨当前登录用户，与仪表盘跳转逻辑一致）
+  await loadLogOfDate(dateStr)
+}
+
+// 防止快速切换日期时旧请求覆盖新结果
+let logFetchSeq = 0
+
+// 按日期查询当天工作日志（无则置空）
+const loadLogOfDate = async (dateStr: string) => {
+  const seq = ++logFetchSeq
+  try {
+    const resp = await fetch(`/api/work-log/date/${dateStr}`)
+    if (seq !== logFetchSeq) return
+    if (!resp.ok) {
+      selectedLog.value = null
+      return
+    }
+    const data = await resp.json()
+    if (seq !== logFetchSeq) return
+    if (data && data.work_log_by_ai) {
+      selectedLog.value = { date: dateStr, content: data.work_log_by_ai }
+    } else {
+      selectedLog.value = null
+    }
+  } catch (e) {
+    if (seq === logFetchSeq) selectedLog.value = null
   }
 }
 
@@ -566,13 +587,7 @@ onMounted(async () => {
     // ③ 目标日期的工作日志 + 全部 AI 日志（hasLog 深绿标记）
     (async () => {
       try {
-        const logResponse = await fetch(`/api/work-log/date/${targetDateStr}`)
-        if (logResponse.ok) {
-          const logData = await logResponse.json()
-          if (logData && logData.work_log_by_ai) {
-            selectedLog.value = { date: targetDateStr, content: logData.work_log_by_ai }
-          }
-        }
+        await loadLogOfDate(targetDateStr)
         const logsResponse = await fetch(`/api/work-log/user/${currentUserId}`)
         if (logsResponse.ok) {
           const logsData = await logsResponse.json()
