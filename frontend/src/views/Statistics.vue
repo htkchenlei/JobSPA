@@ -1,7 +1,17 @@
 <template>
   <div class="statistics">
-    <h3>项目统计分析</h3>
-    
+    <div class="statistics-header">
+      <h3>项目统计分析</h3>
+      <div class="year-filter">
+        <span class="year-filter-label">统计年份</span>
+        <select v-model="selectedYear" class="year-select" aria-label="统计年份">
+          <option value="all">所有年份</option>
+          <option v-for="y in yearOptions" :key="y" :value="y">{{ y }} 年</option>
+        </select>
+        <span class="filter-count">共 {{ filteredCount }} 个项目</span>
+      </div>
+    </div>
+
     <!-- 图表容器 -->
     <div class="charts-container">
       <!-- 各省份项目数量分布 -->
@@ -54,7 +64,7 @@
 
       <!-- 周日志数量统计 -->
       <div class="chart-card">
-        <h4>周日志数量（近12周）</h4>
+        <h4>周日志数量（{{ weekLogTitle }}）</h4>
         <div class="chart">
           <canvas ref="weekLogChart"></canvas>
         </div>
@@ -62,7 +72,7 @@
 
       <!-- 月日志数量统计 -->
       <div class="chart-card">
-        <h4>月日志数量（近12个月）</h4>
+        <h4>月日志数量（{{ monthLogTitle }}）</h4>
         <div class="chart">
           <canvas ref="monthLogChart"></canvas>
         </div>
@@ -119,9 +129,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Chart from 'chart.js/auto'
 import * as echarts from 'echarts'
+
+// 年份筛选（默认为本年度，'all' 表示所有年份；按项目创建日期 start_date 归年）
+const currentYear = new Date().getFullYear()
+const selectedYear = ref<number | string>(currentYear)
+const yearOptions = ref<number[]>([])
 
 // 图表引用
 const provinceCountChart = ref(null)
@@ -138,6 +153,48 @@ const projects = ref([])
 const salesStatistics = ref([])
 const stageStatistics = ref([])
 
+// 图表实例缓存（切换年份时先销毁再重建）
+const chartInstances: Record<string, any> = {}
+
+const createChart = (key: string, canvas: any, config: any) => {
+  if (!canvas) return
+  if (chartInstances[key]) {
+    chartInstances[key].destroy()
+  }
+  chartInstances[key] = new Chart(canvas.getContext('2d'), config)
+}
+
+const destroyAllCharts = () => {
+  Object.keys(chartInstances).forEach(key => {
+    if (chartInstances[key]) {
+      chartInstances[key].destroy()
+      delete chartInstances[key]
+    }
+  })
+}
+
+// 按所选年份过滤项目（以项目创建日期 start_date 为时间点）
+const filteredProjects = computed(() => {
+  if (selectedYear.value === 'all') return projects.value
+  const year = Number(selectedYear.value)
+  return projects.value.filter((p: any) => {
+    if (!p.start_date) return false
+    return parseInt(String(p.start_date).substring(0, 4)) === year
+  })
+})
+
+const filteredCount = computed(() => filteredProjects.value.length)
+
+const weekLogTitle = computed(() => {
+  if (selectedYear.value === 'all' || Number(selectedYear.value) === currentYear) return '近12周'
+  return `${selectedYear.value}年末12周`
+})
+
+const monthLogTitle = computed(() => {
+  if (selectedYear.value === 'all') return '近12个月'
+  return `${selectedYear.value}年1-12月`
+})
+
 // 项目阶段映射（统一 5 档）
 const stages = {
   '立项中': [1],
@@ -153,11 +210,25 @@ const fetchProjects = async () => {
     const response = await fetch('/api/projects/')
     const data = await response.json()
     projects.value = data
+    buildYearOptions(data)
     return data
   } catch (error) {
     console.error('获取项目数据失败:', error)
     return []
   }
+}
+
+// 依据项目创建日期生成可选年份（降序），并保证当前年份存在
+const buildYearOptions = (projectData) => {
+  const yearSet = new Set<number>()
+  projectData.forEach((p: any) => {
+    if (p.start_date) {
+      const y = parseInt(String(p.start_date).substring(0, 4))
+      if (!isNaN(y)) yearSet.add(y)
+    }
+  })
+  yearSet.add(currentYear)
+  yearOptions.value = Array.from(yearSet).sort((a, b) => b - a)
 }
 
 // 计算各省份项目数量分布
@@ -213,9 +284,15 @@ const calculateStageCount = (projectData) => {
   return stageCount
 }
 
-// 计算月度新增项目趋势
-const calculateMonthlyTrend = (projectData) => {
+// 计算月度新增项目趋势（指定年份时补齐该年 1-12 月）
+const calculateMonthlyTrend = (projectData, year) => {
   const monthlyTrend = {}
+  
+  if (year !== 'all') {
+    for (let m = 1; m <= 12; m++) {
+      monthlyTrend[`${year}-${m.toString().padStart(2, '0')}`] = 0
+    }
+  }
   
   projectData.forEach(project => {
     if (project.start_date) {
@@ -342,11 +419,10 @@ const calculateProvinceDetailedStats = (projectData) => {
 const drawProvinceCountChart = (provinceCount) => {
   if (!provinceCountChart.value) return
   
-  const ctx = provinceCountChart.value.getContext('2d')
   const labels = Object.keys(provinceCount)
   const data = Object.values(provinceCount)
   
-  new Chart(ctx, {
+  createChart('provinceCount', provinceCountChart.value, {
     type: 'pie',
     data: {
       labels: labels,
@@ -371,11 +447,10 @@ const drawProvinceCountChart = (provinceCount) => {
 const drawProvinceAmountChart = (provinceAmount) => {
   if (!provinceAmountChart.value) return
   
-  const ctx = provinceAmountChart.value.getContext('2d')
   const labels = Object.keys(provinceAmount)
   const data = Object.values(provinceAmount)
   
-  new Chart(ctx, {
+  createChart('provinceAmount', provinceAmountChart.value, {
     type: 'pie',
     data: {
       labels: labels,
@@ -400,11 +475,10 @@ const drawProvinceAmountChart = (provinceAmount) => {
 const drawStageCountChart = (stageCount) => {
   if (!stageCountChart.value) return
   
-  const ctx = stageCountChart.value.getContext('2d')
   const labels = Object.keys(stageCount)
   const data = Object.values(stageCount)
   
-  new Chart(ctx, {
+  createChart('stageCount', stageCountChart.value, {
     type: 'bar',
     data: {
       labels: labels,
@@ -431,11 +505,10 @@ const drawStageCountChart = (stageCount) => {
 const drawMonthlyTrendChart = (monthlyTrend) => {
   if (!monthlyTrendChart.value) return
   
-  const ctx = monthlyTrendChart.value.getContext('2d')
   const labels = Object.keys(monthlyTrend)
   const data = Object.values(monthlyTrend)
   
-  new Chart(ctx, {
+  createChart('monthlyTrend', monthlyTrendChart.value, {
     type: 'line',
     data: {
       labels: labels,
@@ -467,11 +540,10 @@ const drawMonthlyTrendChart = (monthlyTrend) => {
 const drawScaleDistributionChart = (scaleDistribution) => {
   if (!scaleDistributionChart.value) return
   
-  const ctx = scaleDistributionChart.value.getContext('2d')
   const labels = Object.keys(scaleDistribution)
   const data = Object.values(scaleDistribution)
   
-  new Chart(ctx, {
+  createChart('scaleDistribution', scaleDistributionChart.value, {
     type: 'pie',
     data: {
       labels: labels,
@@ -490,49 +562,51 @@ const drawScaleDistributionChart = (scaleDistribution) => {
   })
 }
 
-// 计算当年项目完成金额统计（阶段由1-8变为9-13的项目）
-const calculateCompletedAmountTrend = (projectData) => {
-  const currentYear = new Date().getFullYear()
+// 计算项目完成金额统计（阶段 4 已中标及以上视为完成；指定年份时统计该年 1-12 月）
+const calculateCompletedAmountTrend = (projectData, year) => {
   const monthlyAmount = {}
   
-  // 初始化当年1-12月
-  for (let month = 1; month <= 12; month++) {
-    monthlyAmount[`${currentYear}-${month.toString().padStart(2, '0')}`] = 0
+  // 指定年份时初始化该年 1-12 月
+  if (year !== 'all') {
+    for (let month = 1; month <= 12; month++) {
+      monthlyAmount[`${year}-${month.toString().padStart(2, '0')}`] = 0
+    }
   }
   
   projectData.forEach(project => {
     if (project.start_date && project.scale) {
-      const year = parseInt(project.start_date.substring(0, 4))
       const month = project.start_date.substring(0, 7)
-      
-      // 只统计当年的数据
-      if (year === currentYear) {
-        const stageNum = parseInt(project.stage)
+      const stageNum = parseInt(project.stage)
 
-        // 已中标(4)及以上视为进入高阶段/完成统计
-        if (stageNum >= 4) {
-          const amount = parseFloat(project.scale) || 0
-          monthlyAmount[month] = (monthlyAmount[month] || 0) + amount
-        }
+      // 已中标(4)及以上视为进入高阶段/完成统计
+      if (stageNum >= 4) {
+        const amount = parseFloat(project.scale) || 0
+        monthlyAmount[month] = (monthlyAmount[month] || 0) + amount
       }
     }
   })
   
-  return monthlyAmount
+  // 按月份排序
+  const sortedMonths = Object.keys(monthlyAmount).sort()
+  const sortedTrend = {}
+  sortedMonths.forEach(month => {
+    sortedTrend[month] = monthlyAmount[month]
+  })
+  
+  return sortedTrend
 }
 
 // 绘制项目完成金额统计折线图
-const drawMaintenanceTrendChart = (completedAmountTrend) => {
+const drawMaintenanceTrendChart = (completedAmountTrend, year) => {
   if (!maintenanceTrendChart.value) return
   
-  const ctx = maintenanceTrendChart.value.getContext('2d')
-  
   const labels = Object.keys(completedAmountTrend).map(month => {
-    return `${parseInt(month.split('-')[1])}月`
+    // 所有年份时保留年月，避免不同年份的月份重叠
+    return year === 'all' ? month : `${parseInt(month.split('-')[1])}月`
   })
   const data = Object.values(completedAmountTrend)
   
-  new Chart(ctx, {
+  createChart('maintenanceTrend', maintenanceTrendChart.value, {
     type: 'line',
     data: {
       labels: labels,
@@ -563,7 +637,7 @@ const drawMaintenanceTrendChart = (completedAmountTrend) => {
 // 周日志数量（近12周）柱状图
 const drawWeekLogChart = (labels, values) => {
   if (!weekLogChart.value) return
-  new Chart(weekLogChart.value.getContext('2d'), {
+  createChart('weekLog', weekLogChart.value, {
     type: 'bar',
     data: {
       labels,
@@ -587,7 +661,7 @@ const drawWeekLogChart = (labels, values) => {
 // 月日志数量（近12个月）柱状图
 const drawMonthLogChart = (labels, values) => {
   if (!monthLogChart.value) return
-  new Chart(monthLogChart.value.getContext('2d'), {
+  createChart('monthLog', monthLogChart.value, {
     type: 'bar',
     data: {
       labels,
@@ -608,10 +682,11 @@ const drawMonthLogChart = (labels, values) => {
   })
 }
 
-// 获取日志数量趋势（interval: week|month）
-const fetchLogStat = async (interval) => {
+// 获取日志数量趋势（interval: week|month，year 为年份或 'all'）
+const fetchLogStat = async (interval, year) => {
   try {
-    const resp = await fetch(`/api/projects/log-statistics?interval=${interval}&size=12`)
+    const yearParam = year && year !== 'all' ? `&year=${year}` : ''
+    const resp = await fetch(`/api/projects/log-statistics?interval=${interval}&size=12${yearParam}`)
     if (resp.ok) {
       const data = await resp.json()
       if (data && Array.isArray(data.labels) && Array.isArray(data.values)) {
@@ -624,36 +699,51 @@ const fetchLogStat = async (interval) => {
   return null
 }
 
-// 初始化
-onMounted(async () => {
-  // 获取项目数据
-  const projectData = await fetchProjects()
-  
+// 按当前所选年份渲染全部图表与表格
+const renderStatistics = async () => {
+  const year = selectedYear.value
+  const projectData = filteredProjects.value
+
   // 计算统计数据
   const provinceCount = calculateProvinceCountDistribution(projectData)
   const provinceAmount = calculateProvinceAmountDistribution(projectData)
   const stageCount = calculateStageCount(projectData)
-  const monthlyTrend = calculateMonthlyTrend(projectData)
+  const monthlyTrend = calculateMonthlyTrend(projectData, year)
   const scaleDistribution = calculateScaleDistribution(projectData)
-  const completedAmountTrend = calculateCompletedAmountTrend(projectData)
-  
+  const completedAmountTrend = calculateCompletedAmountTrend(projectData, year)
+
   // 更新表格数据
   salesStatistics.value = calculateSalesStatistics(projectData)
   stageStatistics.value = calculateStageStatistics(projectData)
-  
+
   // 绘制图表
   drawProvinceCountChart(provinceCount)
   drawProvinceAmountChart(provinceAmount)
   drawStageCountChart(stageCount)
   drawMonthlyTrendChart(monthlyTrend)
   drawScaleDistributionChart(scaleDistribution)
-  drawMaintenanceTrendChart(completedAmountTrend)
+  drawMaintenanceTrendChart(completedAmountTrend, year)
 
-  // 周/月日志数量统计图
-  const weekStat = await fetchLogStat('week')
+  // 周/月日志数量统计图（同样按年份过滤）
+  const weekStat = await fetchLogStat('week', year)
   if (weekStat) drawWeekLogChart(weekStat.labels, weekStat.values)
-  const monthStat = await fetchLogStat('month')
+  const monthStat = await fetchLogStat('month', year)
   if (monthStat) drawMonthLogChart(monthStat.labels, monthStat.values)
+}
+
+// 初始化
+onMounted(async () => {
+  await fetchProjects()
+  await renderStatistics()
+})
+
+// 切换年份时重新统计
+watch(selectedYear, () => {
+  renderStatistics()
+})
+
+onBeforeUnmount(() => {
+  destroyAllCharts()
 })
 </script>
 
@@ -670,7 +760,55 @@ onMounted(async () => {
   font-size: 22px;
   font-weight: 700;
   color: #5D5A6D;
+  margin-bottom: 0;
+}
+
+.statistics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
   margin-bottom: 24px;
+}
+
+.year-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.year-filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8B8798;
+}
+
+.year-select {
+  min-width: 120px;
+  padding: 8px 14px;
+  font-size: 14px;
+  color: #5D5A6D;
+  background: white;
+  border: 1px solid #F0E6E3;
+  border-radius: 12px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.year-select:hover {
+  border-color: #A8E6CF;
+}
+
+.year-select:focus {
+  border-color: #7DD3C0;
+  box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.25);
+}
+
+.filter-count {
+  font-size: 13px;
+  color: #8B8798;
 }
 
 .charts-container {
@@ -844,7 +982,16 @@ onMounted(async () => {
 @media (max-width: 480px) {
   .statistics h3 {
     font-size: 20px;
+  }
+
+  .statistics-header {
     margin-bottom: 16px;
+  }
+
+  .year-filter {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .chart {

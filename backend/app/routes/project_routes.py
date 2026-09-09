@@ -175,14 +175,24 @@ def get_log_statistics():
     except (TypeError, ValueError):
         size = 12
 
+    # 年份过滤：不传或 all 表示所有年份，否则只统计指定年份（按日志日期归年）
+    raw_year = request.args.get('year')
+    try:
+        year = int(raw_year) if raw_year not in (None, '', 'all') else None
+    except (TypeError, ValueError):
+        year = None
+
     today = date.today()
     labels = []
     keys = []
     key_to_idx = {}
 
     if interval == 'week':
-        # 本周一
-        cur_monday = today - timedelta(days=today.weekday())
+        # 指定历史年份时以该年最后一周为终点，否则以本周一为终点
+        anchor = today
+        if year is not None and year < today.year:
+            anchor = date(year, 12, 31)
+        cur_monday = anchor - timedelta(days=anchor.weekday())
         for i in range(size - 1, -1, -1):
             d = cur_monday - timedelta(weeks=i)
             k = d.isoformat()
@@ -190,19 +200,24 @@ def get_log_statistics():
             labels.append(f"{d.month}/{d.day}")
             keys.append(k)
     else:
-        # 近 N 个月（含当月）
-        yy, mm = today.year, today.month
-        rev = []
-        for _ in range(size):
-            rev.append((yy, mm))
-            mm -= 1
-            if mm == 0:
-                yy -= 1
-                mm = 12
-        for y, m in reversed(rev):
+        if year is not None:
+            # 指定年份：输出该年 1-12 月
+            months = [(year, m) for m in range(1, 13)]
+        else:
+            # 近 N 个月（含当月）
+            yy, mm = today.year, today.month
+            rev = []
+            for _ in range(size):
+                rev.append((yy, mm))
+                mm -= 1
+                if mm == 0:
+                    yy -= 1
+                    mm = 12
+            months = list(reversed(rev))
+        for y, m in months:
             k = f"{y:04d}-{m:02d}"
             key_to_idx[k] = len(labels)
-            labels.append(f"{y:04d}-{m:02d}")
+            labels.append(k)
             keys.append(k)
 
     values = [0] * len(labels)
