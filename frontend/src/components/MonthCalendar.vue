@@ -265,11 +265,14 @@ onMounted(() => {
 .calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  /* 让 6 行日期平分父容器剩余高度，无论卡片高度多少都能完整显示 */
+  grid-auto-rows: 1fr;
   gap: 3px;
+  flex: 1;
+  min-height: 0;
 }
 
 .calendar-day {
-  aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -280,7 +283,8 @@ onMounted(() => {
   position: relative;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
-  min-height: 28px;
+  min-height: 22px;
+  /* 由 grid-auto-rows 平分空间，不依赖宽度算高度 */
 }
 
 .calendar-day:hover {
