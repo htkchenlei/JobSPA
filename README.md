@@ -11,7 +11,7 @@
 - 最近项目更新动态
 
 ### 📋 项目管理
-- 项目全生命周期管理，项目阶段统一为 5 档：**立项中 / 已立项 / 招投标 / 已中标 / 已完成**（旧 1-13 细分已归一化，详见 `backend/migrate_stage_5.py`）
+- 项目全生命周期管理，项目阶段统一为 5 档：**立项中 / 已立项 / 招投标 / 已中标 / 已完成**（历史 1-13 档数据已在升级时一次性归一化）
 - 项目进度历史记录
 - 项目自动分组展示：
   - **进行中项目**：近 1 个月内有更新
@@ -128,9 +128,9 @@ docker-compose down
 - 容器**启动时会先自动执行 `init_db.py`（幂等）再拉起 gunicorn**：即使挂载的 `./data` 目录是空库，也会自动建表并创建默认账号 `admin/123456`，避免出现 `no such table: users`。
 - 后端会在数据目录自动生成 `progress_days_cache.json`（工作日志日历缓存），**无需手工创建/上传**；该文件请勿提交到 Git。
 - **工作日志规则**：只有用户在页面手动点击「生成今日日志」并保存才写入 `work_log`；不会自动生成，也不会把项目进展自动补齐成工作日志。日历的颜色标记由手动录入的项目进展（`project_progress` → `month-days` 缓存）驱动。
-- 若历史数据库中曾存在“系统补齐”占位日志（`created_by_ai='系统补齐'`），可清理（不影响手动 AI 日志与日历颜色）：
+- 历史版本曾把“系统补齐”占位日志（`created_by_ai='系统补齐'`）写入 `work_log`，新代码不再生成。若旧库仍有此类记录且想清理（不影响手动 AI 日志与日历颜色），可用一次性 SQL：
   ```bash
-  docker compose exec jobspa python cleanup_sync_worklog.py
+  docker compose exec jobspa python -c "import sqlite3; c=sqlite3.connect('/app/data/projectmanagement.db'); print('deleted', c.execute(\"DELETE FROM work_log WHERE created_by_ai='系统补齐'\").rowcount); c.commit()"
   ```
 
 #### 7. 从已有部署做增量更新（推荐）
@@ -146,11 +146,9 @@ docker-compose down
    - `backend/` 下本次变更的 `.py` 源码（如 `app/routes/*.py`、`app/models/*.py`、`init_db.py`、新增脚本等）
    - 若改动了启动方式：`docker-compose.yml`
    > 新增的 `.py` 文件必须一并上传，否则容器启动时会 `ModuleNotFoundError`。
-3. 若有数据库结构/数据迁移脚本（如 `backend/migrate_stage_5.py`），先在容器内执行（建议先备份）：
-   ```bash
-   cp data/projectmanagement.db data/projectmanagement.db.bak
-   docker compose exec jobspa python migrate_stage_5.py   # 阶段 1-13 → 5 档
-   ```
+3. 数据库说明：
+   - 新装/当前版本库（空库会由 `init_db.py` 自动建表）`projects.stage` 直接使用 5 档（1~5），**无需任何迁移**；
+   - 仅当你从“1-13 档”旧版本升级且卷内仍是旧档数据时，才需要一次性把 1-2→1、3-5→2、6-8→3、9-11→4、12-13→5。历史仓库提交里附过 `backend/migrate_stage_5.py`（已从主干移除，可从 Git 历史取回）；建议先 `cp data/projectmanagement.db data/projectmanagement.db.bak`。
 4. 重建并启动应用镜像（业务代码变更通常只需重建应用层，基础镜像 `jobspa-base` 已构建过一次即可复用）：
    ```bash
    docker compose up -d --build
