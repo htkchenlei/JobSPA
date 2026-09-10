@@ -7,12 +7,12 @@ export default defineConfig({
   server: {
     port: 5000,
     host: true,
-    // /api 前缀专属后端接口（Flask 蓝图），代理到本地后端服务。
-    // 前端页面路由不得占用 /api（API 文档页已改为 /api-docs），
+    // 后端接口均为 /api/xxx 形式，代理规则精确到 /api/ 前缀，
+    // 避免误伤以 /api 开头的前端路由（如 /apis 文档页）。
     // 其余前端路由由 appType: 'spa' 回退到 index.html。
     appType: 'spa',
     proxy: {
-      '/api': {
+      '/api/': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,

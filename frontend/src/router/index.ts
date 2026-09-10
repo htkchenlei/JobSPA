@@ -54,9 +54,9 @@ const router = createRouter({
       ]
     },
     {
-      // 注意：不能使用 /api —— 与后端接口前缀 /api/* 撞名，
-      // 开发模式会被 Vite 代理抢走、生产环境会命中后端路由，导致文档页无法打开
-      path: '/api-docs',
+      // 注意：不能用 /api —— 与后端接口前缀 /api/* 撞名（开发模式会被代理截胡、
+      // 生产环境会命中后端路由）；/apis 与 /api/xxx 接口路径不同，可安全使用
+      path: '/apis',
       name: 'apiDocumentation',
       component: () => import('../views/ApiDocumentation.vue'),
       meta: { requiresAuth: false }
