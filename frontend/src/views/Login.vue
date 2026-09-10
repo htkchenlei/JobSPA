@@ -1,43 +1,80 @@
 <template>
-  <div class="login-container">
-    <div class="login-form">
-      <h2>
+  <div class="login-page">
+    <n-card class="login-card" :bordered="false">
+      <div class="login-head">
         <img src="/workspace.svg" alt="Logo" class="logo-icon">
-        JobSPA 登录
-      </h2>
-      <form @submit.prevent="login">
-        <div class="form-group">
-          <label for="username">用户名</label>
-          <input type="text" id="username" v-model="loginForm.username" class="form-control" required>
+        <h2>JobSPA 登录</h2>
+        <p class="login-sub">项目管理平台 · 薄荷绿马卡龙</p>
+      </div>
+
+      <n-form ref="formRef" :model="loginForm" :rules="rules">
+        <n-form-item path="username" label="用户名">
+          <n-input
+            v-model:value="loginForm.username"
+            size="large"
+            placeholder="请输入用户名"
+            :input-props="{ autocomplete: 'username' }"
+            @keydown.enter="login"
+          />
+        </n-form-item>
+        <n-form-item path="password" label="密码">
+          <n-input
+            v-model:value="loginForm.password"
+            type="password"
+            show-password-on="click"
+            size="large"
+            placeholder="请输入密码"
+            :input-props="{ autocomplete: 'current-password' }"
+            @keydown.enter="login"
+          />
+        </n-form-item>
+
+        <div class="login-actions">
+          <n-button type="primary" size="large" block :loading="loading" @click="login">登录</n-button>
+          <n-button class="mc-btn-lavender" size="large" block :disabled="loading" @click="resetForm">取消</n-button>
         </div>
-        <div class="form-group">
-          <label for="password">密码</label>
-          <input type="password" id="password" v-model="loginForm.password" class="form-control" required>
-        </div>
-        <div class="form-group buttons-group">
-          <button type="submit" class="btn btn-primary">登录</button>
-          <button type="button" class="btn btn-secondary" @click="resetForm">取消</button>
-        </div>
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
-      </form>
-    </div>
+      </n-form>
+
+      <n-alert v-if="error" type="error" :bordered="false" class="login-error" closable @close="error = ''">
+        {{ error }}
+      </n-alert>
+
+      <p class="login-tip">默认账号请联系管理员分配</p>
+    </n-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { NAlert, NButton, NCard, NForm, NFormItem, NInput } from 'naive-ui'
+import type { FormInst, FormRules } from 'naive-ui'
 
 const router = useRouter()
+
+const formRef = ref<FormInst | null>(null)
+const loading = ref(false)
+const error = ref('')
+
 const loginForm = ref({
   username: '',
   password: ''
 })
-const error = ref('')
+
+const rules: FormRules = {
+  username: { required: true, message: '请输入用户名', trigger: ['blur', 'input'] },
+  password: { required: true, message: '请输入密码', trigger: ['blur', 'input'] }
+}
 
 const login = async () => {
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return
+  }
+
+  loading.value = true
+  error.value = ''
   try {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
@@ -46,21 +83,22 @@ const login = async () => {
       },
       body: JSON.stringify(loginForm.value)
     })
-    
+
     if (response.ok) {
       const data = await response.json()
       // 存储token到sessionStorage，关闭浏览器后自动清除
       sessionStorage.setItem('token', data.token)
       sessionStorage.setItem('user', JSON.stringify(data.user))
-      // 跳转到仪表板
       router.push('/dashboard')
     } else {
-      const errorData = await response.json()
-      error.value = errorData.error || '登录失败'
+      const errorData = await response.json().catch(() => null)
+      error.value = errorData?.error || '登录失败'
     }
   } catch (err) {
     console.error('登录失败:', err)
     error.value = '网络错误，请稍后重试'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -71,134 +109,102 @@ const resetForm = () => {
     password: ''
   }
   error.value = ''
+  formRef.value?.restoreValidation()
 }
 </script>
 
 <style scoped>
-.login-container {
+/* 登录页融入马卡龙氛围，彻底去掉原有蓝色 Bootstrap 观感 */
+.login-page {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  padding: 24px;
+  background:
+    radial-gradient(1000px 500px at 15% 0%, rgba(168, 230, 207, 0.20), transparent 60%),
+    radial-gradient(900px 460px at 90% 10%, rgba(255, 154, 139, 0.14), transparent 55%),
+    radial-gradient(800px 420px at 50% 100%, rgba(195, 177, 225, 0.16), transparent 60%),
+    var(--macaron-cream);
 }
 
-.login-form {
+.login-card {
   width: 100%;
-  max-width: 400px;
-  padding: 30px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 420px;
+  padding: 8px 8px 4px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(93, 90, 109, 0.10);
+  overflow: hidden;
 }
 
-.login-form h2 {
-  text-align: center;
-  margin-bottom: 30px;
-  color: #333;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
+.login-card::before {
+  content: '';
   display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #555;
+  height: 4px;
+  margin: -8px -8px 20px;
+  background: linear-gradient(90deg, var(--macaron-mint), var(--macaron-sky));
 }
 
-.form-control {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-.form-control:focus {
-  border-color: #80bdff;
-  outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-.buttons-group {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.buttons-group .btn {
-  flex: 1;
-  padding: 12px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.error-message {
-  margin-top: 15px;
-  padding: 10px;
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
+.login-head {
   text-align: center;
+  margin-bottom: 24px;
 }
 
-/* 按钮样式 */
-.btn {
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
+.login-head h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--macaron-text);
+  margin: 0;
 }
 
-.btn-primary {
-  background-color: #3498db;
-  color: white;
-  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
-}
-
-.btn-primary:hover {
-  background-color: #2980b9;
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
-}
-
-.btn-secondary {
-  background-color: #95a5a6;
-  color: white;
-  box-shadow: 0 2px 4px rgba(149, 165, 166, 0.3);
-}
-
-.btn-secondary:hover {
-  background-color: #7f8c8d;
-  box-shadow: 0 4px 8px rgba(149, 165, 166, 0.4);
+.login-sub {
+  margin: 8px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--macaron-text-light);
 }
 
 .logo-icon {
-  width: 24px;
-  height: 24px;
-  margin-right: 8px;
+  width: 32px;
+  height: 32px;
   vertical-align: middle;
+  margin-right: 8px;
+}
+
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.login-error {
+  margin-top: var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.login-tip {
+  margin: var(--space-4) 0 0;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--macaron-text-light);
+  background: rgba(195, 177, 225, 0.10);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
 }
 
 /* ==================== 移动端适配 ==================== */
 @media (max-width: 480px) {
-  .login-container {
+  .login-page {
     padding: 12px;
   }
 
-  .login-form {
+  .login-card {
     max-width: 100%;
-    padding: 24px 18px;
-    border-radius: 12px;
+    padding: 4px;
   }
 
-  .login-form h2 {
+  .login-head h2 {
     font-size: 20px;
-    margin-bottom: 20px;
   }
 }
 </style>

@@ -77,3 +77,7 @@ screenshots/
 # Backend uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Playwright CLI / screenshot artifacts (local testing only)
+.playwright-cli/
+shots/

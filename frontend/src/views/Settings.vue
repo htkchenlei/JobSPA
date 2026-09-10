@@ -1,490 +1,115 @@
 <template>
   <div class="change-password">
-    <h1>个人设置</h1>
-    
-    <div class="settings-tabs">
-      <button 
-        class="tab-btn" 
-        :class="{ active: activeTab === 'password' }"
-        @click="activeTab = 'password'"
-      >
-        修改密码
-      </button>
-      <button 
-        class="tab-btn" 
-        :class="{ active: activeTab === 'ai' }"
-        @click="activeTab = 'ai'"
-      >
-        AI模型设置
-      </button>
-      <button 
-        class="tab-btn" 
-        :class="{ active: activeTab === 'api' }"
-        @click="activeTab = 'api'"
-      >
-        API文档
-      </button>
-    </div>
-    
-    <!-- 修改密码表单 -->
-    <div v-if="activeTab === 'password'" class="change-password-form">
-      <form @submit.prevent="submitChangePassword">
-        <div class="form-group">
-          <label>当前密码</label>
-          <input type="password" v-model="changePasswordForm.currentPassword" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label>新密码</label>
-          <input type="password" v-model="changePasswordForm.newPassword" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label>确认新密码</label>
-          <input type="password" v-model="changePasswordForm.confirmPassword" class="form-control" required>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">保存</button>
-        </div>
-      </form>
-    </div>
-    
-    <!-- AI模型设置 -->
-    <div v-if="activeTab === 'ai'" class="ai-settings-form">
-      <div class="form-group">
-        <label>选择AI模型</label>
-        <div class="model-options">
-          <label v-for="model in models" :key="model.value" class="model-option">
-            <input type="radio" v-model="aiForm.defaultModel" :value="model.value">
-            <span>{{ model.label }}</span>
-          </label>
-        </div>
-      </div>
-      
-      <div class="model-apis">
-        <h4>API密钥设置</h4>
-        
-        <div v-if="aiForm.defaultModel === 'deepseek'" class="form-group">
-          <label>DeepSeek API密钥</label>
-          <input type="password" v-model="aiForm.apiKeys.deepseek" class="form-control" placeholder="输入DeepSeek API密钥" required>
-          <small class="form-text text-muted">从 https://www.deepseek.com/ 获取API密钥</small>
-        </div>
-        
-        <div v-if="aiForm.defaultModel === 'qwen'" class="form-group">
-          <label>Qwen API密钥</label>
-          <input type="password" v-model="aiForm.apiKeys.qwen" class="form-control" placeholder="输入Qwen API密钥" required>
-          <small class="form-text text-muted">从 https://dashscope.aliyun.com/ 获取API密钥</small>
-        </div>
-        
-        <div v-if="aiForm.defaultModel === 'doubao'" class="form-group">
-          <label>Doubao API密钥</label>
-          <input type="password" v-model="aiForm.apiKeys.doubao" class="form-control" placeholder="输入Doubao API密钥" required>
-          <small class="form-text text-muted">从 https://console.volcengine.com/ark/ 获取API密钥</small>
-        </div>
-      </div>
-      
-      <div class="form-actions">
-        <button class="btn btn-primary" @click="updateAiSettings">保存设置</button>
-      </div>
-    </div>
-    
-    <!-- API文档 -->
-    <div v-if="activeTab === 'api'" class="api-documentation">
-      <h1>API接口文档</h1>
-      
-      <!-- 认证相关API -->
-      <section class="api-section">
-        <h2>认证相关API</h2>
-        <div class="api-card">
-          <h3>登录</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/auth/login</div>
-            <div class="api-description">用户登录接口，返回JWT token</div>
-            <div class="api-request">
-              <h4>请求参数：</h4>
-              <pre>{"username": "用户名", "password": "密码"}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"token": "JWT token", "user": {"id": 1, "username": "用户名", "is_admin": false}}</pre>
-            </div>
+    <h1 class="page-title">个人设置</h1>
+
+    <n-tabs v-model:value="activeTab" type="line" animated class="settings-tabs">
+      <n-tab-pane name="password" tab="修改密码">
+        <n-card class="settings-card" :bordered="false">
+          <n-form
+            ref="passwordFormRef"
+            :model="changePasswordForm"
+            :rules="passwordRules"
+            label-placement="top"
+          >
+            <n-form-item label="当前密码" path="currentPassword">
+              <n-input
+                v-model:value="changePasswordForm.currentPassword"
+                type="password"
+                show-password-on="click"
+                placeholder="请输入当前密码"
+              />
+            </n-form-item>
+            <n-form-item label="新密码" path="newPassword">
+              <n-input
+                v-model:value="changePasswordForm.newPassword"
+                type="password"
+                show-password-on="click"
+                placeholder="请输入新密码"
+              />
+            </n-form-item>
+            <n-form-item label="确认新密码" path="confirmPassword">
+              <n-input
+                v-model:value="changePasswordForm.confirmPassword"
+                type="password"
+                show-password-on="click"
+                placeholder="请再次输入新密码"
+              />
+            </n-form-item>
+          </n-form>
+          <div class="form-actions">
+            <n-button class="mc-btn-coral" :loading="savingPassword" @click="submitChangePassword">保存</n-button>
           </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>验证token</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/auth/verify</div>
-            <div class="api-description">验证JWT token的有效性</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"user": {"id": 1, "username": "用户名", "is_admin": false}}</pre>
-            </div>
+        </n-card>
+      </n-tab-pane>
+
+      <n-tab-pane name="ai" tab="AI模型设置">
+        <n-card class="settings-card" :bordered="false">
+          <n-form label-placement="top">
+            <n-form-item label="选择AI模型">
+              <n-radio-group v-model:value="aiForm.defaultModel" class="model-options">
+                <n-radio-button
+                  v-for="model in models"
+                  :key="model.value"
+                  :value="model.value"
+                  class="model-option"
+                >
+                  {{ model.label }}
+                </n-radio-button>
+              </n-radio-group>
+            </n-form-item>
+
+            <n-divider title-placement="left" class="api-divider">API密钥设置</n-divider>
+
+            <n-form-item v-if="aiForm.defaultModel === 'deepseek'" label="DeepSeek API密钥" :feedback="deepseekTip">
+              <n-input
+                v-model:value="aiForm.apiKeys.deepseek"
+                type="password"
+                show-password-on="click"
+                placeholder="输入DeepSeek API密钥"
+              />
+            </n-form-item>
+
+            <n-form-item v-if="aiForm.defaultModel === 'qwen'" label="Qwen API密钥" :feedback="qwenTip">
+              <n-input
+                v-model:value="aiForm.apiKeys.qwen"
+                type="password"
+                show-password-on="click"
+                placeholder="输入Qwen API密钥"
+              />
+            </n-form-item>
+
+            <n-form-item v-if="aiForm.defaultModel === 'doubao'" label="Doubao API密钥" :feedback="doubaoTip">
+              <n-input
+                v-model:value="aiForm.apiKeys.doubao"
+                type="password"
+                show-password-on="click"
+                placeholder="输入Doubao API密钥"
+              />
+            </n-form-item>
+          </n-form>
+          <div class="form-actions">
+            <n-button class="mc-btn-coral" @click="updateAiSettings">保存设置</n-button>
           </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>登出</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/auth/logout</div>
-            <div class="api-description">用户登出接口</div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"message": "登出成功"}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>修改密码</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/auth/change-password</div>
-            <div class="api-description">修改用户密码</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-              <h4>请求参数：</h4>
-              <pre>{"currentPassword": "当前密码", "newPassword": "新密码"}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"message": "密码修改成功"}</pre>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      <!-- 用户相关API -->
-      <section class="api-section">
-        <h2>用户相关API</h2>
-        <div class="api-card">
-          <h3>获取用户列表</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/users/</div>
-            <div class="api-description">获取所有用户列表</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>[{"id": 1, "username": "用户名"}]</pre>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      <!-- 项目相关API -->
-      <section class="api-section">
-        <h2>项目相关API</h2>
-        <div class="api-card">
-          <h3>获取项目列表</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/projects/</div>
-            <div class="api-description">获取所有未删除的项目列表</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>[{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}]</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>获取单个项目</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/projects/{id}</div>
-            <div class="api-description">获取单个项目的详细信息</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>创建项目</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/projects/</div>
-            <div class="api-description">创建新项目</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-              <h4>请求参数：</h4>
-              <pre>{"name": "项目名称", "client_name": "客户名称", "stage": 1}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>更新项目</h3>
-          <div class="api-details">
-            <div class="api-method put">PUT</div>
-            <div class="api-url">/api/projects/{id}</div>
-            <div class="api-description">更新项目信息</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-              <h4>请求参数：</h4>
-              <pre>{"name": "项目名称", "client_name": "客户名称", "stage": 2}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 2, "stage_text": "已立项"}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>更新项目进度</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/projects/{id}/progress</div>
-            <div class="api-description">更新项目进度信息</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-              <h4>请求参数：</h4>
-              <pre>{"update_content": "进度内容", "stage": 3, "updated_by": "更新人"}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"id": 1, "stage": 3, "stage_text": "已立项", "message": "项目进度更新成功"}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>获取项目进度历史</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/projects/{id}/progress</div>
-            <div class="api-description">获取项目的进度历史记录</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>[{"id": 1, "update_content": "进度内容", "update_date": "2024-01-01", "update_time": "12:00:00", "updated_by": "更新人"}]</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>删除项目</h3>
-          <div class="api-details">
-            <div class="api-method delete">DELETE</div>
-            <div class="api-url">/api/projects/{id}</div>
-            <div class="api-description">软删除项目</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"message": "项目删除成功"}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>获取项目阶段列表</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/projects/stages</div>
-            <div class="api-description">获取所有项目阶段列表</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>[{"value": 1, "label": "立项中"}, {"value": 2, "label": "已立项"}, {"value": 3, "label": "招投标"}, {"value": 4, "label": "已中标"}, {"value": 5, "label": "已完成"}]</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>搜索项目</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/projects/search</div>
-            <div class="api-description">根据关键词搜索项目</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-              <h4>请求参数：</h4>
-              <pre>{"keywords": "关键词", "start_date": "开始日期", "end_date": "结束日期"}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>[{"id": 1, "name": "项目名称", "client_name": "客户名称", "stage": 1, "stage_text": "立项中"}]</pre>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      <!-- 工作日志相关API -->
-      <section class="api-section">
-        <h2>工作日志相关API</h2>
-        <div class="api-card">
-          <h3>获取所有工作日志</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/work-log/</div>
-            <div class="api-description">获取所有工作日志</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>[{"id": 1, "today_activities": "活动记录", "user": 1, "work_log_by_ai": "AI生成的工作日志", "log_date": "2024-01-01", "log_time": "12:00:00", "created_by_ai": "DeepSeek"}]</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>获取用户的工作日志</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/work-log/user/{user_id}</div>
-            <div class="api-description">获取指定用户的所有工作日志</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>[{"id": 1, "today_activities": "活动记录", "user": 1, "work_log_by_ai": "AI生成的工作日志", "log_date": "2024-01-01", "log_time": "12:00:00", "created_by_ai": "DeepSeek"}]</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>获取指定日期的工作日志</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/work-log/date/{log_date}</div>
-            <div class="api-description">获取指定日期的工作日志</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"id": 1, "today_activities": "活动记录", "user": 1, "work_log_by_ai": "AI生成的工作日志", "log_date": "2024-01-01", "log_time": "12:00:00", "created_by_ai": "DeepSeek"}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>生成今日活动记录</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/work-log/generate-activities</div>
-            <div class="api-description">生成今日的活动记录</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-              <h4>请求参数：</h4>
-              <pre>{"user_id": 1}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"activities": ["活动1", "活动2", "活动3"]}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>保存工作日志</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/work-log/save</div>
-            <div class="api-description">保存工作日志</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-              <h4>请求参数：</h4>
-              <pre>{"user_id": 1, "work_log_by_ai": "AI生成的工作日志"}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"message": "工作日志保存成功"}</pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="api-card">
-          <h3>获取今日活动记录</h3>
-          <div class="api-details">
-            <div class="api-method get">GET</div>
-            <div class="api-url">/api/work-log/today-activities</div>
-            <div class="api-description">获取今日的活动记录</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>["活动1", "活动2", "活动3"]</pre>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      <!-- AI相关API -->
-      <section class="api-section">
-        <h2>AI相关API</h2>
-        <div class="api-card">
-          <h3>生成AI内容</h3>
-          <div class="api-details">
-            <div class="api-method post">POST</div>
-            <div class="api-url">/api/ai/generate</div>
-            <div class="api-description">调用大模型生成内容</div>
-            <div class="api-request">
-              <h4>请求头：</h4>
-              <pre>Authorization: Bearer {token}</pre>
-              <h4>请求参数：</h4>
-              <pre>{"model": "deepseek", "prompt": "提示词", "max_tokens": 500}</pre>
-            </div>
-            <div class="api-response">
-              <h4>响应示例：</h4>
-              <pre>{"content": "AI生成的内容"}</pre>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
+        </n-card>
+      </n-tab-pane>
+
+      <n-tab-pane name="api" tab="API文档">
+        <ApiDocumentation />
+      </n-tab-pane>
+    </n-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  NTabs, NTabPane, NCard, NForm, NFormItem, NInput,
+  NButton, NRadioGroup, NRadioButton, NDivider
+} from 'naive-ui'
+import type { FormInst, FormRules } from 'naive-ui'
+import { message } from '../utils/feedback'
+import ApiDocumentation from './ApiDocumentation.vue'
 
 const router = useRouter()
 
@@ -498,12 +123,36 @@ const changePasswordForm = ref({
   confirmPassword: ''
 })
 
+const passwordFormRef = ref<FormInst | null>(null)
+const savingPassword = ref(false)
+
+const passwordRules: FormRules = {
+  currentPassword: { required: true, message: '请输入当前密码', trigger: ['input', 'blur'] },
+  newPassword: { required: true, message: '请输入新密码', trigger: ['input', 'blur'] },
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: ['input', 'blur'] },
+    {
+      validator: (_rule, value: string) => {
+        if (!value) return true
+        return value === changePasswordForm.value.newPassword
+      },
+      message: '两次输入的密码不一致',
+      trigger: ['input', 'blur']
+    }
+  ]
+}
+
 // 模型列表
 const models = [
   { value: 'deepseek', label: 'DeepSeek' },
   { value: 'qwen', label: 'Qwen' },
   { value: 'doubao', label: 'Doubao' }
 ]
+
+// 密钥获取提示
+const deepseekTip = '从 https://www.deepseek.com/ 获取API密钥'
+const qwenTip = '从 https://dashscope.aliyun.com/ 获取API密钥'
+const doubaoTip = '从 https://console.volcengine.com/ark/ 获取API密钥'
 
 // AI模型设置表单
 const aiForm = ref({
@@ -517,21 +166,30 @@ const aiForm = ref({
 
 // 初始化表单数据
 onMounted(() => {
-  // 从localStorage获取AI设置
   const aiSettingsStr = localStorage.getItem('aiSettings')
   if (aiSettingsStr) {
-    aiForm.value = { ...aiForm.value, ...JSON.parse(aiSettingsStr) }
+    try {
+      aiForm.value = { ...aiForm.value, ...JSON.parse(aiSettingsStr) }
+    } catch (e) {
+      console.error('解析AI设置失败:', e)
+    }
   }
 })
 
 // 提交修改密码
 const submitChangePassword = async () => {
-  // 验证新密码和确认密码是否一致
-  if (changePasswordForm.value.newPassword !== changePasswordForm.value.confirmPassword) {
-    alert('新密码和确认密码不一致')
+  try {
+    await passwordFormRef.value?.validate()
+  } catch {
     return
   }
-  
+
+  if (changePasswordForm.value.newPassword !== changePasswordForm.value.confirmPassword) {
+    message.warning('新密码和确认密码不一致')
+    return
+  }
+
+  savingPassword.value = true
   try {
     const token = sessionStorage.getItem('token')
     const response = await fetch('/api/auth/change-password', {
@@ -542,326 +200,127 @@ const submitChangePassword = async () => {
       },
       body: JSON.stringify(changePasswordForm.value)
     })
-    
+
     if (response.ok) {
-      const data = await response.json()
-      alert('密码修改成功')
-      // 重置表单
+      await response.json()
+      message.success('密码修改成功')
       changePasswordForm.value = {
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       }
-      // 可以选择跳转回仪表盘
-      // router.push('/dashboard')
     } else {
       const errorData = await response.json()
-      alert(`密码修改失败: ${errorData.error}`)
+      message.error(`密码修改失败: ${errorData.error}`)
     }
   } catch (error) {
     console.error('修改密码失败:', error)
-    alert('修改密码失败，请稍后重试')
+    message.error('修改密码失败，请稍后重试')
+  } finally {
+    savingPassword.value = false
   }
 }
 
 // 更新AI模型设置
 const updateAiSettings = () => {
-  console.log('更新AI模型设置:', aiForm.value)
   localStorage.setItem('aiSettings', JSON.stringify(aiForm.value))
-  alert('AI模型设置保存成功')
+  message.success('AI模型设置保存成功')
 }
 </script>
 
 <style scoped>
 .change-password {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
 }
 
-h1 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 40px;
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #5D5A6D;
+  margin: 0 0 20px;
 }
 
-/* 标签页样式 */
-.settings-tabs {
-  display: flex;
-  margin-bottom: 30px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.tab-btn {
-  padding: 12px 24px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 16px;
-  border-bottom: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.tab-btn:hover {
-  color: #3498db;
-}
-
-.tab-btn.active {
-  border-bottom-color: #3498db;
-  color: #3498db;
-  font-weight: 500;
-}
-
-/* 表单样式 */
-.change-password-form,
-.ai-settings-form {
-  background-color: white;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.form-group {
+/* Tab 选中态用薰衣草紫，去蓝色叛离 */
+.settings-tabs :deep(.n-tabs-nav) {
   margin-bottom: 20px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #555;
+.settings-tabs :deep(.n-tabs-tab) {
+  font-size: 15px;
+  color: #8B8899;
 }
 
-.form-control {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
+.settings-tabs :deep(.n-tabs-tab--active) {
+  color: #9575C9;
+  font-weight: 600;
 }
 
-.form-control:focus {
-  outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+.settings-tabs :deep(.n-tabs-bar) {
+  background: linear-gradient(90deg, #C3B1E1, #9575C9) !important;
+  border-radius: 2px;
 }
+
+.settings-card {
+  border-radius: 20px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F0E6E3;
+  background: rgba(255, 255, 255, 0.9);
+  border-top: 4px solid #A8E6CF;
+}
+
+/* 内容区留白见全局 style.css（Naive 类名为 .n-card-content） */
 
 .form-actions {
-  margin-top: 30px;
-  text-align: center;
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
 }
 
-/* 模型API设置样式 */
-.model-apis {
-  margin-top: 30px;
-}
-
-.model-apis h4 {
-  color: #333;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 10px;
-}
-
-.form-text {
-  font-size: 12px;
-  color: #6c757d;
-  margin-top: 5px;
-  display: block;
-}
-
-/* 模型选项样式 */
+/* 模型选择：卡片化单选按钮 */
 .model-options {
   display: flex;
-  gap: 30px;
-  margin-top: 10px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.model-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
+.model-options :deep(.n-radio-button) {
+  border-radius: 12px !important;
+  border: 1px solid #F0E6E3 !important;
+  padding: 8px 20px;
+  transition: all 0.2s ease;
 }
 
-.model-option input[type="radio"] {
-  width: auto;
-  margin: 0;
+.model-options :deep(.n-radio-button--checked) {
+  border-color: #A8E6CF !important;
+  background: rgba(168, 230, 207, 0.15) !important;
+  color: #4A9E7F !important;
+  font-weight: 600;
 }
 
-.model-option span {
-  font-size: 14px;
-  color: #555;
+.api-divider {
+  margin: 8px 0 20px;
 }
 
-/* 按钮样式 */
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  text-decoration: none;
+.api-divider :deep(.n-divider__title) {
+  font-size: 15px;
+  font-weight: 600;
+  color: #5D5A6D;
 }
 
-.btn-primary {
-  background-color: #3498db;
-  color: white;
-  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
-}
-
-.btn-primary:hover {
-  background-color: #2980b9;
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
-}
-
-/* API文档样式 */
-.api-documentation {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.api-section {
-  margin-bottom: 40px;
-}
-
-.api-section h2 {
-  color: #4a4a4a;
-  border-bottom: 2px solid #e0e0e0;
-  padding-bottom: 10px;
-  margin-bottom: 20px;
-}
-
-.api-card {
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.api-card h3 {
-  color: #333;
-  margin-top: 0;
-  margin-bottom: 15px;
-}
-
-.api-details {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.api-method {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-  color: white;
-  width: 80px;
-  text-align: center;
-}
-
-.api-method.get {
-  background-color: #4CAF50;
-}
-
-.api-method.post {
-  background-color: #2196F3;
-}
-
-.api-method.put {
-  background-color: #FF9800;
-}
-
-.api-method.delete {
-  background-color: #f44336;
-}
-
-.api-url {
-  font-family: monospace;
-  font-size: 16px;
-  color: #333;
-  background-color: #e8e8e8;
-  padding: 8px;
-  border-radius: 4px;
-}
-
-.api-description {
-  color: #666;
-  font-size: 14px;
-}
-
-.api-request, .api-response {
-  margin-top: 10px;
-}
-
-.api-request h4, .api-response h4 {
-  margin: 0 0 5px 0;
-  color: #4a4a4a;
-  font-size: 14px;
-}
-
-.api-request pre, .api-response pre {
-  background-color: #f1f1f1;
-  padding: 10px;
-  border-radius: 4px;
-  font-family: monospace;
-  font-size: 14px;
-  overflow-x: auto;
-  margin: 0;
-}
-
-/* ==================== 移动端适配 ==================== */
 @media (max-width: 768px) {
-  .change-password {
-    padding: 4px;
-  }
-
-  .change-password > h1,
-  .api-documentation > h1 {
-    font-size: 22px;
-    margin-bottom: 20px;
-  }
-
-  .settings-tabs {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .tab-btn {
-    flex: 1;
-    min-width: 0;
-    padding: 10px 4px;
-    font-size: 14px;
-    white-space: nowrap;
-  }
-
-  .change-password-form,
-  .ai-settings-form {
-    padding: 20px 16px;
+  .page-title {
+    font-size: 20px;
+    margin-bottom: 14px;
   }
 
   .model-options {
-    flex-direction: column;
-    gap: 12px;
+    width: 100%;
   }
 
-  .api-documentation {
-    padding: 8px;
-  }
-
-  .api-card {
-    padding: 14px;
-  }
-
-  .api-url {
-    font-size: 13px;
-    overflow-wrap: anywhere;
+  .model-options :deep(.n-radio-button) {
+    flex: 1;
+    padding: 8px 10px;
   }
 }
 </style>

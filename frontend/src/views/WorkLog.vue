@@ -1,15 +1,15 @@
 <template>
   <div class="work-log">
     <h1>工作日志</h1>
-    
+
     <div class="work-log-content">
       <!-- 左侧日历 -->
       <div class="left-section">
         <div class="calendar-container">
           <div class="calendar-header">
-            <button class="btn btn-secondary" @click="prevMonth">&lt; 上个月</button>
+            <n-button class="mc-btn-lavender" size="small" @click="prevMonth">&lt; 上个月</n-button>
             <h2>{{ currentYear }}年{{ currentMonth + 1 }}月</h2>
-            <button class="btn btn-secondary" @click="nextMonth">下个月 &gt;</button>
+            <n-button class="mc-btn-lavender" size="small" @click="nextMonth">下个月 &gt;</n-button>
           </div>
           
           <div class="calendar-weekdays">
@@ -54,43 +54,45 @@
 
         <!-- 生成日志按钮 -->
         <div v-if="selectedDate && isToday(selectedDate)" class="generate-log-container">
-          <button class="btn btn-primary" @click="generateLog" :disabled="isGenerating">
+          <n-button class="mc-btn-mint" :loading="isGenerating" @click="generateLog">
             {{ isGenerating ? '生成中...' : (selectedLog ? '重新生成今日日志' : '生成今日日志') }}
-          </button>
+          </n-button>
         </div>
       </div>
-      
+
       <!-- 右侧内容 -->
       <div class="right-section">
         <!-- 活动记录 -->
-        <div v-if="currentActivities.length > 0" class="prompt-content">
-          <h3>{{ selectedDate ? (isToday(selectedDate) ? '今日活动记录' : `${currentYear}年${currentMonth + 1}月${selectedDate}日活动记录`) : '活动记录' }}</h3>
+        <n-card v-if="currentActivities.length > 0" class="prompt-content" :bordered="false">
+          <template #header>
+            <span class="card-title">{{ selectedDate ? (isToday(selectedDate) ? '今日活动记录' : `${currentYear}年${currentMonth + 1}月${selectedDate}日活动记录`) : '活动记录' }}</span>
+          </template>
           <div class="prompt-section">
             <ul class="activities-list">
               <li v-for="(activity, index) in currentActivities" :key="index">{{ activity }}</li>
             </ul>
           </div>
-        </div>
-        
+        </n-card>
+
         <!-- 已选择的日志 -->
-        <div v-if="selectedLog" class="log-content">
-          <h3>{{ selectedLog.date }} 工作日志</h3>
+        <n-card v-if="selectedLog" class="log-content" :bordered="false">
+          <template #header><span class="card-title">{{ selectedLog.date }} 工作日志</span></template>
           <div class="log-text">{{ selectedLog.content }}</div>
-        </div>
-        
+        </n-card>
+
         <!-- 生成的日志 -->
-        <div v-if="generatedLog" class="log-content">
-          <h3>{{ new Date().toISOString().split('T')[0] }} 工作日志</h3>
+        <n-card v-if="generatedLog" class="log-content" :bordered="false">
+          <template #header><span class="card-title">{{ new Date().toISOString().split('T')[0] }} 工作日志</span></template>
           <div class="log-text">{{ generatedLog }}</div>
           <div class="log-actions">
-            <button class="btn btn-primary" @click="saveLog">保存日志</button>
+            <n-button class="mc-btn-mint" :loading="savingLog" @click="saveLog">保存日志</n-button>
           </div>
-        </div>
-        
+        </n-card>
+
         <!-- 未选择日期时的提示 -->
-        <div v-else-if="!selectedDate && currentActivities.length === 0" class="empty-state">
-          <p>请选择一个日期查看或生成工作日志</p>
-        </div>
+        <n-card v-else-if="!selectedDate && currentActivities.length === 0" class="empty-state" :bordered="false">
+          <n-empty description="请选择一个日期查看或生成工作日志" />
+        </n-card>
       </div>
     </div>
 
@@ -100,6 +102,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { NCard, NButton, NEmpty } from 'naive-ui'
+import { message } from '../utils/feedback'
 
 const route = useRoute()
 
@@ -109,6 +113,7 @@ const selectedDate = ref<number | null>(null)
 const selectedLog = ref<any>(null)
 const generatedLog = ref<string | null>(null)
 const isGenerating = ref(false)
+const savingLog = ref(false)
 const currentPrompt = ref('')
 const currentActivities = ref<string[]>([])
 
@@ -417,10 +422,12 @@ const generateLog = async () => {
           console.log('构建的提示词:', currentPrompt.value)
         } else {
           console.log('今天没有活动记录')
+          message.warning('今天暂无活动记录，无法生成日志')
           return
         }
       } else {
         console.error('生成活动记录失败:', await generateResponse.text())
+        message.error('生成活动记录失败，请稍后重试')
         return
       }
     } else {
@@ -463,12 +470,15 @@ const generateLog = async () => {
       generatedLog.value = data.content
       // 清除selectedLog，这样按钮会显示"生成今日日志"
       selectedLog.value = null
+      message.success('日志生成成功')
     } else {
       const errorText = await response.text()
       console.error('生成日志失败:', errorText)
+      message.error('生成日志失败，请检查 AI 配置后重试')
     }
   } catch (error) {
     console.error('生成日志失败:', error)
+    message.error('生成日志失败，请稍后重试')
   } finally {
     isGenerating.value = false
     console.log('生成日志过程结束')
@@ -479,6 +489,7 @@ const generateLog = async () => {
 const saveLog = async () => {
   if (!generatedLog.value) return
   
+  savingLog.value = true
   try {
     // 获取当前登录用户ID
     let currentUserId = 1 // 默认值
@@ -524,11 +535,16 @@ const saveLog = async () => {
       }
       selectedLog.value = newLog
       generatedLog.value = null
+      message.success('日志已保存')
     } else {
       console.error('保存日志失败:', await saveResponse.text())
+      message.error('保存日志失败，请稍后重试')
     }
   } catch (error) {
     console.error('保存日志时发生错误:', error)
+    message.error('保存日志失败，请稍后重试')
+  } finally {
+    savingLog.value = false
   }
 }
 
@@ -850,67 +866,26 @@ onUnmounted(() => {
   margin: 20px 0;
 }
 
-/* 日志内容 */
-.log-content {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-  border: 1px solid #F0E6E3;
-  position: relative;
-}
-
-.log-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #FF9A8B, #FFB7B2);
-  border-radius: 20px 20px 0 0;
-}
-
-/* AI内容区域 */
-.ai-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* 提示词内容 */
-.prompt-content {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-  border: 1px solid #F0E6E3;
-  position: relative;
-}
-
-.prompt-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #A8E6CF, #C3B1E1);
-  border-radius: 20px 20px 0 0;
-}
-
-/* 空状态 */
+/* 日志内容 / 提示词内容 / 空状态：n-card 承载，顶部 4px 渐变条保留 */
+.log-content,
+.prompt-content,
 .empty-state {
-  background: white;
-  border-radius: 20px;
-  padding: 60px 40px;
+  border-radius: 20px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  background: white;
   border: 1px solid #F0E6E3;
-  text-align: center;
-  color: #8B8899;
   position: relative;
+  overflow: hidden;
 }
 
+/* 内容区留白见全局 style.css（Naive 类名为 .n-card-content） */
+:deep(.log-content .n-card-header),
+:deep(.prompt-content .n-card-header) {
+  padding: 18px 24px 0;
+}
+
+.log-content::before,
+.prompt-content::before,
 .empty-state::before {
   content: '';
   position: absolute;
@@ -918,15 +893,28 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #FFEAA7, #FDCB6E);
-  border-radius: 20px 20px 0 0;
+  z-index: 1;
 }
 
-.log-content h3,
-.prompt-content h3 {
+.log-content::before {
+  background: linear-gradient(90deg, #FF9A8B, #FFB7B2);
+}
+
+.prompt-content::before {
+  background: linear-gradient(90deg, #A8E6CF, #C3B1E1);
+}
+
+.empty-state::before {
+  background: linear-gradient(90deg, #FFEAA7, #FDCB6E);
+}
+
+.empty-state .n-card-content {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.card-title {
   color: #5D5A6D;
-  margin-top: 0;
-  margin-bottom: 16px;
   font-size: 16px;
   font-weight: 600;
 }

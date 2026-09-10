@@ -4,9 +4,9 @@
       <span class="tree-icon">{{ node.expanded ? '📁' : '📂' }}</span>
       <span class="tree-label">{{ node.name }}</span>
       <div class="tree-node-actions">
-        <button class="tree-action-btn" @click.stop="$emit('create-folder', node)">📁</button>
-        <button class="tree-action-btn" @click.stop="$emit('upload-file', node)">⬆️</button>
-        <button class="tree-action-btn" @click.stop="$emit('delete', node)">🗑️</button>
+        <n-button class="tree-action-btn" quaternary size="tiny" title="新建目录" @click.stop="$emit('create-folder', node)">📁</n-button>
+        <n-button class="tree-action-btn" quaternary size="tiny" title="上传文件" @click.stop="$emit('upload-file', node)">⬆️</n-button>
+        <n-button class="tree-action-btn" quaternary size="tiny" title="删除" @click.stop="$emit('delete', node)">🗑️</n-button>
       </div>
     </div>
     <ul v-if="node.expanded && node.children.length > 0" class="tree-children">
@@ -24,6 +24,8 @@
 </template>
 
 <script setup lang="ts">
+import { NButton } from 'naive-ui'
+
 defineProps({
   node: {
     type: Object,
@@ -80,12 +82,10 @@ defineEmits(['toggle', 'create-folder', 'upload-file', 'delete'])
   opacity: 1;
 }
 
-.tree-action-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
+.tree-action-btn.n-button {
   font-size: 14px;
   padding: 2px;
+  min-width: 24px;
 }
 
 .tree-children {

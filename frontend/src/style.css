@@ -255,3 +255,391 @@ input:focus, select:focus, textarea:focus {
 .fade-in {
   animation: fadeIn 0.4s ease;
 }
+
+/* ==========================================================
+   设计令牌层（Primitives → Semantic）
+   间距统一 8px 网格；圆角/阴影/字号走语义变量，组件不直接写物理值
+   ========================================================== */
+:root {
+  /* 间距 - 8px 基准 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-10: 64px;
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* 阴影 - 低饱和柔和投影 */
+  --shadow-1: 0 1px 3px rgba(93, 90, 109, 0.06), 0 1px 2px rgba(93, 90, 109, 0.04);
+  --shadow-2: 0 4px 20px rgba(93, 90, 109, 0.05);
+  --shadow-3: 0 8px 30px rgba(93, 90, 109, 0.08);
+  --shadow-mint: 0 4px 20px rgba(168, 230, 207, 0.22);
+  --shadow-coral: 0 4px 20px rgba(255, 154, 139, 0.22);
+
+  /* 字号刻度 */
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 22px;
+
+  /* 动效时长 */
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 语义色（指向品牌色，禁止在组件里直接写十六进制） */
+  --mc-primary: var(--macaron-coral);
+  --mc-secondary: var(--macaron-lavender);
+  --mc-success: var(--macaron-mint);
+  --mc-info: var(--macaron-sky);
+  --mc-warning: var(--macaron-lemon);
+  --mc-danger: #FF6B6B;
+}
+
+/* ==========================================================
+   Naive UI 与马卡龙基调对齐
+   ========================================================== */
+
+/* 下拉 / 日期选择器：统一圆角与宽度，避免默认宽度撑破表单 */
+.n-base-selection,
+.n-date-picker {
+  width: 100%;
+}
+
+.n-base-selection {
+  border-radius: var(--radius-md) !important;
+}
+
+/* 卡片与弹层沿用 20px 大圆角 */
+.n-card {
+  border-radius: var(--radius-lg) !important;
+}
+
+.n-modal,
+.n-dialog {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* ==========================================================
+   马卡龙自定义弹窗（.mc-modal）
+   说明：n-modal 会被 teleport 到 body，与业务 SFC 的 DOM 树脱离，
+   因此 scoped 的 :deep(.mc-modal) 永远无法命中，弹窗样式必须写在这里。
+   ========================================================== */
+.mc-modal {
+  border-radius: var(--radius-lg);
+  border: 1px solid #F0E6E3;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+/* preset="card" 时 Naive 把 .n-card 直接作为弹窗根节点，
+   其默认 width:100% + display:flex 会在桌面端撑满整屏，需显式约束 */
+.mc-modal.n-card {
+  width: 720px;
+  max-width: calc(100% - 48px);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.mc-modal .n-card-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #F0E6E3;
+  background: linear-gradient(90deg, rgba(168, 230, 207, 0.12), rgba(255, 154, 139, 0.12));
+}
+
+.mc-modal .n-card-header__main {
+  font-size: 18px;
+  font-weight: 600;
+  color: #5D5A6D;
+}
+
+/* Naive UI 渲染的类名是 .n-card-content（单下划线，非 BEM 双下划线） */
+.mc-modal .n-card-content {
+  padding: 20px 24px;
+}
+
+.mc-modal .n-card__footer {
+  padding: 16px 24px;
+  border-top: 1px solid #F0E6E3;
+  background: #FFFFFF;
+  flex: 0 0 auto;
+}
+
+/* 内容过长时由内容区自己滚动，保证弹窗不超出视口、按钮始终可达 */
+.mc-modal .n-card-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ==========================================================
+   仪表盘统计卡：文字区与图标区左右分列
+   注意：Naive 渲染的是 .n-card-content（单连字符），且 n-card
+   内容区是块级元素。若只在 SFC 的 scoped 样式里写
+   `.stat-card .n-card__content`，类名写错 + scoped 属性对不上，
+   两条都不会生效，会导致「标签/数值/图标」竖向堆叠。
+   ========================================================== */
+.stat-card .n-card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 22px;
+}
+
+.stat-content {
+  min-width: 0;
+}
+
+/* 仪表盘内容卡（阶段分布/日历/最近更新）：内容区需纵向撑满，
+   便于内部图表与列表自适应高度 */
+.content-card.n-card > .n-card-content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ==========================================================
+   统计分析与各业务页卡片的内容区留白
+   这些页面原先写在 scoped 样式里且类名误用 .n-card__content，
+   实际从未生效（回落到 Naive 默认 20px 内边距）。
+   统一在全局补回设计稿的 20px 24px。
+   ========================================================== */
+.chart-card .n-card-content,
+.table-card .n-card-content,
+.logs-card .n-card-content,
+.api-card .n-card-content,
+.search-card .n-card-content {
+  padding: 20px 24px;
+}
+
+.mc-modal.view-progress-modal {
+  width: 80%;
+  max-width: 900px;
+}
+
+/* 表格表头与既有渐变风格一致 */
+.n-data-table-th {
+  font-weight: 700;
+  color: var(--macaron-text);
+}
+
+/* ==========================================================
+   阶段徽标（保留五档配色，改由 n-tag 承载）
+   ========================================================== */
+.mc-stage-tag.stage-initial {
+  background: linear-gradient(135deg, #7EC8E3, #6BB8D3);
+  color: #fff;
+  --n-text-color: #fff;
+}
+
+.mc-stage-tag.stage-approved {
+  background: linear-gradient(135deg, #A8E6CF, #88D8B0);
+  color: #fff;
+  --n-text-color: #fff;
+}
+
+.mc-stage-tag.stage-bidding {
+  background: linear-gradient(135deg, #FFEAA7, #FDCB6E);
+  color: #5D5A6D;
+  --n-text-color: #5D5A6D;
+}
+
+.mc-stage-tag.stage-awarded {
+  background: linear-gradient(135deg, #FFB7B2, #FF9A8B);
+  color: #fff;
+  --n-text-color: #fff;
+}
+
+.mc-stage-tag.stage-completed {
+  background: linear-gradient(135deg, #C3B1E1, #B19FD0);
+  color: #fff;
+  --n-text-color: #fff;
+}
+
+.mc-stage-tag.stage-unknown {
+  background: #E8E0F0;
+  color: #8B8899;
+  --n-text-color: #8B8899;
+}
+
+/* ==========================================================
+   语义按钮：在 Naive default 按钮上覆写 CSS 变量，
+   淡色底 + 深色文字，兼顾品牌色与对比度
+   ========================================================== */
+.mc-btn-lavender.n-button {
+  --n-color: #F4EFFC;
+  --n-color-hover: #EAE2F8;
+  --n-color-pressed: #DFD5F2;
+  --n-color-focus: #F4EFFC;
+  --n-text-color: #5D5A6D;
+  --n-border-color: #E7DEF6;
+  --n-border-color-hover: #D9CBF0;
+  --n-border-color-pressed: #D9CBF0;
+  --n-border-color-focus: #B19FD0;
+}
+
+.mc-btn-mint.n-button {
+  --n-color: #EAF9F3;
+  --n-color-hover: #DDF5EC;
+  --n-color-pressed: #CFEFE4;
+  --n-color-focus: #EAF9F3;
+  --n-text-color: #2F7A62;
+  --n-border-color: #CFEDE1;
+  --n-border-color-hover: #A8E6CF;
+  --n-border-color-pressed: #A8E6CF;
+  --n-border-color-focus: #88D8B0;
+}
+
+.mc-btn-sky.n-button {
+  --n-color: #EAF6FA;
+  --n-color-hover: #DCF0F7;
+  --n-color-pressed: #CDE9F3;
+  --n-color-focus: #EAF6FA;
+  --n-text-color: #2E7794;
+  --n-border-color: #CFE9F2;
+  --n-border-color-hover: #A8DCEC;
+  --n-border-color-pressed: #A8DCEC;
+  --n-border-color-focus: #6BB8D3;
+}
+
+.mc-btn-danger.n-button {
+  --n-color: #FDECEC;
+  --n-color-hover: #FBDCDC;
+  --n-color-pressed: #F8CBCB;
+  --n-color-focus: #FDECEC;
+  --n-text-color: #C0392F;
+  --n-border-color: #F6D3D3;
+  --n-border-color-hover: #EFA9A9;
+  --n-border-color-pressed: #EFA9A9;
+  --n-border-color-focus: #FF6B6B;
+}
+
+/* ==========================================================
+   通用表单栅格（替换 .form-control 手写布局）
+   ========================================================== */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.form-field > label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--macaron-text-light);
+}
+
+/* ==========================================================
+   无障碍：可见焦点 + 降低动效
+   ========================================================== */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible {
+  outline: 2px solid var(--macaron-lavender-dark);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================
+   移动端（≤768px）：弹窗沿用底部抽屉体验 + 触控区达标
+   ========================================================== */
+@media (max-width: 768px) {
+  /* 仅对"卡片型"弹窗套用底部抽屉，避免影响预设 dialog 等窄弹窗 */
+  .n-modal.n-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: auto 0 0 0 !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .n-modal > .n-card {
+    max-height: 85vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Naive UI 渲染的类名是 .n-card-content（单下划线）。
+     表单过长时必须让内容区自己滚动，否则底部按钮被顶出视口、无法点击。 */
+  .n-modal .n-card-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 底部操作区常驻抽屉底部，并预留 iOS 安全区 */
+  .n-modal .n-card__footer {
+    flex: 0 0 auto;
+    border-top: 1px solid #F0E6E3;
+    background: #FFFFFF;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+  }
+
+  /* 马卡龙弹窗：手机上改为底部抽屉，便于单手操作 */
+  .mc-modal.n-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 85vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .mc-modal .n-card-header {
+    padding: 14px 16px;
+  }
+
+  .mc-modal .n-card-content {
+    padding: 16px;
+  }
+
+  .mc-modal .n-card__footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
+  }
+
+  /* 抽屉底部两个按钮（取消/保存）等宽铺开，扩大触控区 */
+  .mc-modal .mc-modal-footer {
+    width: 100%;
+  }
+
+  .mc-modal .mc-modal-footer .n-button {
+    flex: 1;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

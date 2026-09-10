@@ -7,110 +7,107 @@
     </div>
 
     <!-- 统计卡片 - 4列 -->
-    <div class="stats-cards">
-      <div class="stat-card card-mint" @click="goToProjectList()">
-        <div class="stat-content">
-          <p class="stat-label">项目总数</p>
-          <h3 class="stat-value">{{ projectStats.total }}</h3>
-        </div>
-        <div class="stat-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        </div>
-      </div>
-
-      <div class="stat-card card-sky" @click="goToProjectList()">
-        <div class="stat-content">
-          <p class="stat-label">进行中</p>
-          <h3 class="stat-value">{{ projectStats.inProgress }}</h3>
-        </div>
-        <div class="stat-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-      </div>
-
-      <div class="stat-card card-coral" @click="goToProjectList('completed')">
-        <div class="stat-content">
-          <p class="stat-label">已完成</p>
-          <h3 class="stat-value">{{ projectStats.completed }}</h3>
-        </div>
-        <div class="stat-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-      </div>
-
-      <div class="stat-card card-lavender" @click="goToWorkLog">
-        <div class="stat-content">
-          <p class="stat-label">本月日志</p>
-          <h3 class="stat-value">{{ workLogStats.monthly }}</h3>
-        </div>
-        <div class="stat-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <!-- 主内容区 - 左：项目阶段分布 / 中：工作日志日历 / 右：最近更新 -->
-    <div class="main-content">
-      <!-- 左侧：项目阶段分布 -->
-      <div class="content-card chart-card">
-        <div class="card-header">
-          <h3>项目阶段分布</h3>
-          <div class="card-badge">{{ projectStats.total }} 个项目</div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas ref="projectChart"></canvas>
-        </div>
-      </div>
-
-      <!-- 中间：工作日志日历（复用 month-days 缓存，有进展/有日志的日期上色） -->
-      <div class="content-card calendar-card">
-        <div class="card-header">
-          <h3>工作日志日历</h3>
-          <button class="view-all-btn" @click="goToWorkLog">去写日志</button>
-        </div>
-        <MonthCalendar class="calendar-embed" @select="goToWorkLogOnDate" />
-      </div>
-
-      <!-- 右侧：最近更新 -->
-      <div class="content-card updates-card">
-        <div class="card-header">
-          <h3>最近更新</h3>
-          <button class="view-all-btn" @click="goToProjectManagement">查看全部</button>
-        </div>
-        <div class="updates-list">
-          <div v-if="recentActivities.length === 0" class="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p>暂无最近更新</p>
+    <n-spin :show="loading">
+      <div class="stats-cards">
+        <n-card class="stat-card card-mint" :bordered="false" hoverable @click="goToProjectList()">
+          <div class="stat-content">
+            <p class="stat-label">项目总数</p>
+            <h3 class="stat-value">{{ projectStats.total }}</h3>
           </div>
-          <div v-for="activity in recentActivities.slice(0, 8)" :key="activity.id" class="update-item">
-            <div class="update-dot"></div>
-            <div class="update-content">
-              <p class="update-text">{{ activity.content }}</p>
-              <p class="update-time">{{ activity.time }}</p>
+          <div class="stat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+        </n-card>
+
+        <n-card class="stat-card card-sky" :bordered="false" hoverable @click="goToProjectList()">
+          <div class="stat-content">
+            <p class="stat-label">进行中</p>
+            <h3 class="stat-value">{{ projectStats.inProgress }}</h3>
+          </div>
+          <div class="stat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+        </n-card>
+
+        <n-card class="stat-card card-coral" :bordered="false" hoverable @click="goToProjectList('completed')">
+          <div class="stat-content">
+            <p class="stat-label">已完成</p>
+            <h3 class="stat-value">{{ projectStats.completed }}</h3>
+          </div>
+          <div class="stat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </n-card>
+
+        <n-card class="stat-card card-lavender" :bordered="false" hoverable @click="goToWorkLog">
+          <div class="stat-content">
+            <p class="stat-label">本月日志</p>
+            <h3 class="stat-value">{{ workLogStats.monthly }}</h3>
+          </div>
+          <div class="stat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </n-card>
+      </div>
+
+      <!-- 主内容区 - 左：项目阶段分布 / 中：工作日志日历 / 右：最近更新 -->
+      <div class="main-content">
+        <!-- 左侧：项目阶段分布 -->
+        <n-card class="content-card chart-card" :bordered="false" title="项目阶段分布">
+          <template #header-extra>
+            <span class="card-badge">{{ projectStats.total }} 个项目</span>
+          </template>
+          <div class="chart-wrapper">
+            <canvas ref="projectChart"></canvas>
+          </div>
+        </n-card>
+
+        <!-- 中间：工作日志日历（复用 month-days 缓存，有进展/有日志的日期上色） -->
+        <n-card class="content-card calendar-card" :bordered="false" title="工作日志日历">
+          <template #header-extra>
+            <n-button class="mc-btn-lavender" size="tiny" @click="goToWorkLog">去写日志</n-button>
+          </template>
+          <MonthCalendar class="calendar-embed" @select="goToWorkLogOnDate" />
+        </n-card>
+
+        <!-- 右侧：最近更新 -->
+        <n-card class="content-card updates-card" :bordered="false" title="最近更新">
+          <template #header-extra>
+            <n-button class="mc-btn-lavender" size="tiny" @click="goToProjectManagement">查看全部</n-button>
+          </template>
+          <div class="updates-list">
+            <n-empty v-if="recentActivities.length === 0" description="暂无最近更新" size="small" class="empty-state" />
+            <div v-for="activity in recentActivities.slice(0, 8)" :key="activity.id" class="update-item">
+              <div class="update-dot"></div>
+              <div class="update-content">
+                <p class="update-text">{{ activity.content }}</p>
+                <p class="update-time">{{ activity.time }}</p>
+              </div>
             </div>
           </div>
-        </div>
+        </n-card>
       </div>
-    </div>
+    </n-spin>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Chart from 'chart.js/auto'
+import { NButton, NCard, NEmpty, NSpin } from 'naive-ui'
 import router from '../router'
 import MonthCalendar from '../components/MonthCalendar.vue'
+import { getStageMeta } from '../constants/stageColors'
 
+const loading = ref(true)
 const projectStats = ref({ total: 0, inProgress: 0, completed: 0 })
 const workLogStats = ref({ monthly: 0 })
 const recentActivities = ref<any[]>([])
@@ -215,6 +212,10 @@ const goToWorkLogOnDate = (date: string) => {
 
 const initProjectChart = (projects: any[]) => {
   if (!projectChart.value) return
+  if (projectChartInstance.value) {
+    projectChartInstance.value.destroy()
+    projectChartInstance.value = null
+  }
 
   const stageCounts: Record<string, number> = {
     '立项中': 0, '已立项': 0, '招投标': 0, '已中标': 0, '已完成': 0
@@ -239,20 +240,9 @@ const initProjectChart = (projects: any[]) => {
       datasets: [{
         label: '项目数量',
         data,
-        backgroundColor: [
-          'rgba(255, 107, 107, 0.7)',
-          'rgba(78, 163, 224, 0.7)',
-          'rgba(255, 179, 71, 0.7)',
-          'rgba(79, 195, 163, 0.7)',
-          'rgba(162, 129, 255, 0.7)',
-        ],
-        borderColor: [
-          'rgba(255, 107, 107, 1)',
-          'rgba(78, 163, 224, 1)',
-          'rgba(255, 179, 71, 1)',
-          'rgba(79, 195, 163, 1)',
-          'rgba(162, 129, 255, 1)',
-        ],
+        // 统一注入马卡龙品牌色，且与阶段徽标同色（第 i 项 = 第 i 档阶段色）
+        backgroundColor: labels.map((_, i) => `${getStageMeta(i + 1).solid}D9`),
+        borderColor: labels.map((_, i) => getStageMeta(i + 1).solid),
         borderWidth: 1,
         borderRadius: 6,
       }]
@@ -277,10 +267,14 @@ const initProjectChart = (projects: any[]) => {
 }
 
 onMounted(async () => {
-  const projects = await fetchProjectStats()
-  await fetchWorkLogStats()
-  await fetchRecentUpdates()
-  setTimeout(() => initProjectChart(projects), 100)
+  loading.value = true
+  try {
+    const projects = await fetchProjectStats()
+    await Promise.all([fetchWorkLogStats(), fetchRecentUpdates()])
+    setTimeout(() => initProjectChart(projects), 100)
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -321,22 +315,23 @@ onMounted(async () => {
   }
 }
 
-.stat-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px 22px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  border: 1px solid #F0EBF5;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+/* 统计卡改用 n-card 承载，配色与图标保持原样 */
+.stat-card.n-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--macaron-border);
   cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
-.stat-card:hover {
+
+.stat-card.n-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow-3);
 }
+
+/* 统计卡内层为 Naive 渲染的 .n-card-content（单连字符），
+   且该元素在 n-card 内部，scoped 属性无法命中，
+   故布局样式统一放在全局 style.css 的 `.stat-card .n-card-content`。 */
 .stat-label {
   font-size: 12px;
   color: #9693A6;
@@ -388,7 +383,26 @@ onMounted(async () => {
   }
 }
 
-.calendar-card {
+/* 内容卡同样由 n-card 承载，保持三槽等高 */
+.content-card.n-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--macaron-border);
+  overflow: hidden;
+}
+
+/* 内容卡：Naive 的真实类名是 .n-card-content（单连字符），
+   且该元素在 n-card 内部，scoped 无法命中，故移到全局样式。
+   这里仅保留能命中的 .n-card 外层样式。 */
+
+.content-card.n-card > .n-card-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--macaron-border);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.calendar-card.n-card {
   min-width: 0;
   height: 380px;
   display: flex;
@@ -409,27 +423,6 @@ onMounted(async () => {
   justify-content: space-between;
 }
 
-.content-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  border: 1px solid #F0EBF5;
-  overflow: hidden;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 22px;
-  border-bottom: 1px solid #F5F1F9;
-}
-.card-header h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: #3D3A4B;
-  margin: 0;
-}
 .card-badge {
   font-size: 11px;
   color: #7C64CC;
@@ -438,26 +431,9 @@ onMounted(async () => {
   border-radius: 20px;
   font-weight: 600;
 }
-.view-all-btn {
-  font-size: 12px;
-  color: #7C64CC;
-  background: none;
-  border: 1px solid #E0D8F5;
-  cursor: pointer;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-.view-all-btn:hover {
-  background: #7C64CC;
-  color: white;
-  border-color: #7C64CC;
-}
-
 /* ---- 图表 ---- */
-.chart-card,
-.updates-card {
+.chart-card.n-card,
+.updates-card.n-card {
   height: 380px;
   display: flex;
   flex-direction: column;
@@ -517,19 +493,7 @@ onMounted(async () => {
 
 /* ---- 空状态 ---- */
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   padding: 60px 0;
-  color: #C0BFCB;
-}
-.empty-state svg {
-  margin-bottom: 12px;
-  opacity: 0.4;
-}
-.empty-state p {
-  font-size: 13px;
 }
 
 /* ---- 动画 ---- */
@@ -585,11 +549,11 @@ onMounted(async () => {
     gap: 12px;
   }
 
-  .content-card {
+  .content-card.n-card {
     border-radius: 12px;
   }
 
-  .card-header {
+  .content-card.n-card > .n-card-header {
     padding: 14px 16px;
   }
 

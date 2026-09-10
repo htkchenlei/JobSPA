@@ -1,9 +1,9 @@
 <template>
   <div class="month-calendar">
     <div class="calendar-header">
-      <button class="cal-nav-btn" @click="prevMonth" title="上个月">&lt;</button>
+      <n-button class="mc-btn-lavender cal-nav-btn" size="small" title="上个月" @click="prevMonth">&lt;</n-button>
       <h4>{{ currentYear }}年{{ currentMonth + 1 }}月</h4>
-      <button class="cal-nav-btn" @click="nextMonth" title="下个月">&gt;</button>
+      <n-button class="mc-btn-lavender cal-nav-btn" size="small" title="下个月" @click="nextMonth">&gt;</n-button>
     </div>
 
     <div class="calendar-weekdays">
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { NButton } from 'naive-ui'
 
 // 复用与工作日志页相同的配色与数据源（/api/projects/month-days 缓存接口）
 const props = withDefaults(defineProps<{
@@ -227,24 +228,23 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.cal-nav-btn {
-  background: linear-gradient(135deg, #C3B1E1, #B19FD0);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  width: 26px;
-  height: 26px;
+/* 月份导航：改用 n-button small，保留薰衣草紫语义 */
+.cal-nav-btn.n-button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
   font-size: 13px;
   line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(195, 177, 225, 0.3);
-  transition: all 0.2s ease;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
   flex-shrink: 0;
+  transition: all var(--dur-fast) var(--ease);
 }
 
-.cal-nav-btn:hover {
+.cal-nav-btn.n-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(195, 177, 225, 0.45);
+  box-shadow: 0 4px 10px rgba(195, 177, 225, 0.35);
 }
 
 .calendar-weekdays {
@@ -347,13 +347,14 @@ onMounted(() => {
   border-radius: 50%;
 }
 
-/* 图例 */
+/* 图例：字号由 10px 提升至 13px，色块同步放大，语义色保持不变 */
 .calendar-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
-  font-size: 10px;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.6;
   color: #8B8899;
   justify-content: center;
 }
@@ -361,15 +362,15 @@ onMounted(() => {
 .legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .legend-item::before {
   content: '';
   display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
   background: #fff;
   border: 1px solid #F0E6E3;
 }

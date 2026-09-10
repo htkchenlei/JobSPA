@@ -1,166 +1,175 @@
 <template>
   <div class="advanced-search">
-    <h3>高级查询</h3>
-    
-    <!-- 搜索表单容器 -->
+    <h3 class="page-title">高级查询</h3>
+
+    <!-- 搜索表单容器：三种搜索并排 -->
     <div class="search-form-container">
-      <!-- 三种搜索在同一行 -->
-      <div class="form-row main-search-row">
+      <div class="main-search-row">
         <!-- 关键词搜索 -->
-        <div class="search-section col-md-4">
-          <h4>关键词搜索</h4>
-          <div class="search-form keyword-search">
-            <div class="form-row">
-              <div class="form-group col-md-12">
-                <label>关键词搜索：</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  placeholder="请输入一个或多个关键字，用空格分隔" 
-                  v-model="keywordSearch.keywords"
-                >
-              </div>
+        <n-card class="search-section" title="关键词搜索" size="small" :bordered="false">
+          <n-form :model="keywordSearch" label-placement="top" class="search-form">
+            <n-form-item label="关键词搜索">
+              <n-input
+                v-model:value="keywordSearch.keywords"
+                placeholder="请输入一个或多个关键字，用空格分隔"
+                clearable
+              />
+            </n-form-item>
+            <div class="two-col">
+              <n-form-item label="开始日期">
+                <n-date-picker
+                  v-model:formatted-value="keywordSearch.startDate"
+                  value-format="yyyy-MM-dd"
+                  type="date"
+                  placeholder="选择开始日期"
+                />
+              </n-form-item>
+              <n-form-item label="结束日期">
+                <n-date-picker
+                  v-model:formatted-value="keywordSearch.endDate"
+                  value-format="yyyy-MM-dd"
+                  type="date"
+                  placeholder="选择结束日期"
+                />
+              </n-form-item>
             </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>开始日期：</label>
-                <input type="date" class="form-control" v-model="keywordSearch.startDate">
-              </div>
-              <div class="form-group col-md-6">
-                <label>结束日期：</label>
-                <input type="date" class="form-control" v-model="keywordSearch.endDate">
-              </div>
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" @click="performKeywordSearch">关键词搜索</button>
-            </div>
+          </n-form>
+          <div class="form-actions">
+            <n-button class="mc-btn-coral" :loading="searching" @click="performKeywordSearch">关键词搜索</n-button>
           </div>
-        </div>
-        
+        </n-card>
+
         <!-- 条件搜索 -->
-        <div class="search-section col-md-4">
-          <h4>条件搜索</h4>
-          <div class="search-form condition-search">
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>项目负责人：</label>
-                <select class="form-control" v-model="conditionSearch.owner">
-                  <option v-for="owner in owners" :key="owner" :value="owner === '所有负责人' ? '' : owner">{{ owner }}</option>
-                </select>
-              </div>
-              <div class="form-group col-md-6">
-                <label>销售人员：</label>
-                <select class="form-control" v-model="conditionSearch.salesPerson">
-                  <option v-for="sales in salesPersons" :key="sales" :value="sales === '所有销售人员' ? '' : sales">{{ sales }}</option>
-                </select>
-              </div>
+        <n-card class="search-section" title="条件搜索" size="small" :bordered="false">
+          <n-form :model="conditionSearch" label-placement="top" class="search-form">
+            <div class="two-col">
+              <n-form-item label="项目负责人">
+                <n-select
+                  v-model:value="conditionSearch.owner"
+                  :options="ownerOptions"
+                  placeholder="所有负责人"
+                />
+              </n-form-item>
+              <n-form-item label="销售人员">
+                <n-select
+                  v-model:value="conditionSearch.salesPerson"
+                  :options="salesOptions"
+                  placeholder="所有销售人员"
+                />
+              </n-form-item>
             </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>项目阶段：</label>
-                <select class="form-control" v-model="conditionSearch.stage">
-                  <option value="">所有阶段</option>
-                  <option v-for="stage in Object.keys(stages)" :key="stage" :value="stage">{{ stage }}</option>
-                </select>
-              </div>
-              <div class="form-group col-md-6">
-                <label>金额范围（万元）：</label>
-                <select class="form-control" v-model="conditionSearch.amountRange">
-                  <option value="">所有金额</option>
-                  <option value="0-100">0-100</option>
-                  <option value="100-500">100-500</option>
-                  <option value="500-1000">500-1000</option>
-                  <option value="1000+">1000+</option>
-                </select>
-              </div>
+            <div class="two-col">
+              <n-form-item label="项目阶段">
+                <n-select
+                  v-model:value="conditionSearch.stage"
+                  :options="stageOptions"
+                  placeholder="所有阶段"
+                />
+              </n-form-item>
+              <n-form-item label="金额范围（万元）">
+                <n-select
+                  v-model:value="conditionSearch.amountRange"
+                  :options="amountOptions"
+                  placeholder="所有金额"
+                />
+              </n-form-item>
             </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" @click="performConditionSearch">条件搜索</button>
-            </div>
+          </n-form>
+          <div class="form-actions">
+            <n-button class="mc-btn-coral" @click="performConditionSearch">条件搜索</n-button>
           </div>
-        </div>
-        
+        </n-card>
+
         <!-- 地理位置搜索 -->
-        <div class="search-section col-md-4">
-          <h4>按地理位置搜索</h4>
-          <div class="search-form location-search">
-            <div class="form-row">
-              <div class="form-group col-md-12">
-                <label>省份：</label>
-                <select class="form-control" v-model="locationSearch.province" @change="onProvinceChange">
-                  <option value="">全部省份</option>
-                  <option v-for="province in provinces" :key="province" :value="province">{{ province }}</option>
-                </select>
-              </div>
+        <n-card class="search-section" title="按地理位置搜索" size="small" :bordered="false">
+          <n-form :model="locationSearch" label-placement="top" class="search-form">
+            <n-form-item label="省份">
+              <n-select
+                v-model:value="locationSearch.province"
+                :options="provinceOptions"
+                placeholder="全部省份"
+                @update:value="onProvinceChange"
+              />
+            </n-form-item>
+            <div class="two-col">
+              <n-form-item label="城市">
+                <n-select
+                  v-model:value="locationSearch.city"
+                  :options="cityOptions"
+                  placeholder="全部城市"
+                  @update:value="onCityChange"
+                />
+              </n-form-item>
+              <n-form-item label="行政区">
+                <n-select
+                  v-model:value="locationSearch.district"
+                  :options="districtOptions"
+                  placeholder="全部区域"
+                />
+              </n-form-item>
             </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>城市：</label>
-                <select class="form-control" v-model="locationSearch.city" @change="onCityChange">
-                  <option value="">全部城市</option>
-                  <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
-                </select>
-              </div>
-              <div class="form-group col-md-6">
-                <label>行政区：</label>
-                <select class="form-control" v-model="locationSearch.district">
-                  <option value="">全部区域</option>
-                  <option v-for="district in districts" :key="district" :value="district">{{ district }}</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" @click="performLocationSearch">地理位置搜索</button>
-            </div>
+          </n-form>
+          <div class="form-actions">
+            <n-button class="mc-btn-coral" @click="performLocationSearch">地理位置搜索</n-button>
           </div>
-        </div>
+        </n-card>
       </div>
     </div>
-    
+
     <!-- 搜索结果 -->
-    <div class="search-section">
-      <h4>搜索结果（共{{ searchResults.length }}条）</h4>
-      <div class="search-results">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>序号</th>
-              <th>项目名称</th>
-              <th>金额</th>
-              <th>项目阶段</th>
-              <th>销售人员</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(result, index) in searchResults" :key="result.id">
-              <td>{{ index + 1 }}</td>
-              <td>{{ result.name }}</td>
-              <td>{{ result.scale || '0' }}</td>
-              <td>{{ result.stage_text }}</td>
-              <td>{{ result.sales_person || '未知' }}</td>
-              <td>
-                <button class="btn btn-sm btn-info" @click="viewDetails(result.id)">详情</button>
-              </td>
-            </tr>
-            <tr v-if="searchResults.length === 0">
-              <td colspan="6" class="text-center">暂无搜索结果</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <n-card class="result-card" :bordered="false">
+      <template #header>
+        <span class="result-title">搜索结果（共 {{ searchResults.length }} 条）</span>
+      </template>
+      <n-data-table
+        v-if="searchResults.length > 0"
+        :columns="resultColumns"
+        :data="searchResults"
+        :bordered="false"
+        :single-line="false"
+        size="small"
+        :scroll-x="720"
+      />
+      <n-empty v-else description="暂无搜索结果" size="large" />
+    </n-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, h, computed, onMounted } from 'vue'
+import {
+  NCard, NForm, NFormItem, NInput, NSelect, NDatePicker,
+  NDataTable, NButton, NEmpty, NTag
+} from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
+import { getStageMeta } from '../constants/stageColors'
+
+interface ProjectLike {
+  id: string | number
+  name: string
+  scale?: string
+  stage?: string | number
+  stage_text?: string
+  sales_person?: string
+  owner?: string | number
+  owner_username?: string
+  province?: string
+  city?: string
+  district?: string
+  [key: string]: unknown
+}
 
 // 关键词搜索表单数据
-const keywordSearch = ref({
+// 注意：n-date-picker 的需用 null 表示"未选择"，传 '' 会在内部
+// formatDate('') 时抛 RangeError: Invalid time value 导致整页白屏
+const keywordSearch = ref<{
+  keywords: string
+  startDate: string | null
+  endDate: string | null
+}>({
   keywords: '',
-  startDate: '',
-  endDate: ''
+  startDate: null,
+  endDate: null
 })
 
 // 设置默认日期范围为近一年
@@ -168,7 +177,7 @@ const setDefaultDateRange = () => {
   const today = new Date()
   const oneYearAgo = new Date()
   oneYearAgo.setFullYear(today.getFullYear() - 1)
-  
+
   keywordSearch.value.endDate = today.toISOString().split('T')[0]
   keywordSearch.value.startDate = oneYearAgo.toISOString().split('T')[0]
 }
@@ -189,16 +198,17 @@ const locationSearch = ref({
 })
 
 // 搜索结果
-const searchResults = ref([])
+const searchResults = ref<ProjectLike[]>([])
+const searching = ref(false)
 
 // 数据
-const provinces = ref([])
-const cities = ref([])
-const districts = ref([])
+const provinces = ref<string[]>([])
+const cities = ref<string[]>([])
+const districts = ref<string[]>([])
 const owners = ref(['所有负责人'])
 const salesPersons = ref(['所有销售人员'])
 // 项目阶段映射（统一 5 档）
-const stages = {
+const stages: Record<string, number[]> = {
   '立项中': [1],
   '已立项': [2],
   '招投标': [3],
@@ -206,40 +216,124 @@ const stages = {
   '已完成': [5]
 }
 
+// ---- n-select 选项（派生，不改变任何筛选行为） ----
+const ownerOptions = computed(() =>
+  owners.value.map((o) => ({ label: o, value: o === '所有负责人' ? '' : o }))
+)
+const salesOptions = computed(() =>
+  salesPersons.value.map((s) => ({ label: s, value: s === '所有销售人员' ? '' : s }))
+)
+const stageOptions = [
+  { label: '所有阶段', value: '' },
+  ...Object.keys(stages).map((s) => ({ label: s, value: s }))
+]
+const amountOptions = [
+  { label: '所有金额', value: '' },
+  { label: '0-100', value: '0-100' },
+  { label: '100-500', value: '100-500' },
+  { label: '500-1000', value: '500-1000' },
+  { label: '1000+', value: '1000+' }
+]
+const provinceOptions = computed(() => [
+  { label: '全部省份', value: '' },
+  ...provinces.value.map((p) => ({ label: p, value: p }))
+])
+const cityOptions = computed(() => [
+  { label: '全部城市', value: '' },
+  ...cities.value.map((c) => ({ label: c, value: c }))
+])
+const districtOptions = computed(() => [
+  { label: '全部区域', value: '' },
+  ...districts.value.map((d) => ({ label: d, value: d }))
+])
+
+// 结果表格列
+const resultColumns: DataTableColumns<ProjectLike> = [
+  {
+    title: '序号',
+    key: 'index',
+    width: 70,
+    render: (_row, index) => index + 1
+  },
+  {
+    title: '项目名称',
+    key: 'name',
+    minWidth: 180,
+    ellipsis: { tooltip: true }
+  },
+  {
+    title: '金额',
+    key: 'scale',
+    width: 110,
+    render: (row) => row.scale || '0'
+  },
+  {
+    title: '项目阶段',
+    key: 'stage_text',
+    width: 120,
+    render: (row) => {
+      const meta = getStageMeta(row.stage)
+      return h(
+        NTag,
+        { class: ['mc-stage-tag', meta.className], bordered: false, size: 'small', round: true },
+        { default: () => row.stage_text || meta.label }
+      )
+    }
+  },
+  {
+    title: '销售人员',
+    key: 'sales_person',
+    width: 120,
+    render: (row) => row.sales_person || '未知'
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 90,
+    render: (row) =>
+      h(
+        NButton,
+        { class: 'mc-btn-sky', size: 'small', onClick: () => viewDetails(row.id) },
+        { default: () => '详情' }
+      )
+  }
+]
+
 // 从API获取用户列表（用于项目负责人下拉框）
 const fetchUsers = async () => {
   try {
     // 首先从项目列表API获取所有项目
     const projectsResponse = await fetch('/api/projects/')
-    const projects = await projectsResponse.json()
-    
+    const projectList: ProjectLike[] = await projectsResponse.json()
+
     // 提取所有负责人的ID并去重
-    const ownerIdSet = new Set()
-    
-    projects.forEach(project => {
+    const ownerIdSet = new Set<string | number>()
+
+    projectList.forEach((project) => {
       if (project.owner) {
         ownerIdSet.add(project.owner)
       }
     })
-    
+
     // 获取所有用户信息
     const usersResponse = await fetch('/api/users/')
     const users = await usersResponse.json()
-    
+
     // 创建用户ID到用户名的映射
-    const userIdToNameMap = {}
-    users.forEach(user => {
-      userIdToNameMap[user.id] = user.username
+    const userIdToNameMap: Record<string, string> = {}
+    users.forEach((user: { id: string | number; username: string }) => {
+      userIdToNameMap[String(user.id)] = user.username
     })
-    
+
     // 构建负责人列表，只包含在项目中出现过的负责人
-    const ownerNames = []
-    ownerIdSet.forEach(ownerId => {
-      if (userIdToNameMap[ownerId]) {
-        ownerNames.push(userIdToNameMap[ownerId])
+    const ownerNames: string[] = []
+    ownerIdSet.forEach((ownerId) => {
+      const name = userIdToNameMap[String(ownerId)]
+      if (name) {
+        ownerNames.push(name)
       }
     })
-    
+
     // 更新owners数组
     owners.value = ['所有负责人', ...ownerNames]
   } catch (error) {
@@ -254,18 +348,18 @@ const fetchOwnersAndSales = async () => {
   try {
     // 从项目列表API获取所有项目
     const response = await fetch('/api/projects/')
-    const projectData = await response.json()
-    
+    const projectData: ProjectLike[] = await response.json()
+
     // 存储项目数据
     projects.value = projectData
-    
+
     // 提取所有销售人员的名字
-    const salesSet = new Set()
-    
+    const salesSet = new Set<string>()
+
     // 提取所有省份并去重
-    const provinceSet = new Set()
-    
-    projectData.forEach(project => {
+    const provinceSet = new Set<string>()
+
+    projectData.forEach((project) => {
       if (project.sales_person && project.sales_person !== '所有销售人员') {
         salesSet.add(project.sales_person)
       }
@@ -273,10 +367,10 @@ const fetchOwnersAndSales = async () => {
         provinceSet.add(project.province)
       }
     })
-    
+
     // 更新salesPersons数组
     salesPersons.value = ['所有销售人员', ...Array.from(salesSet)]
-    
+
     // 更新provinces数组
     provinces.value = Array.from(provinceSet)
   } catch (error) {
@@ -289,14 +383,15 @@ const fetchOwnersAndSales = async () => {
 }
 
 // 从API获取的项目数据
-const projects = ref([])
+const projects = ref<ProjectLike[]>([])
 
 // 关键词搜索
 const performKeywordSearch = async () => {
   const keywords = keywordSearch.value.keywords
   const startDate = keywordSearch.value.startDate
   const endDate = keywordSearch.value.endDate
-  
+
+  searching.value = true
   try {
     // 发送API请求到后端进行关键词搜索
     const response = await fetch('/api/projects/search/', {
@@ -310,16 +405,17 @@ const performKeywordSearch = async () => {
         end_date: endDate
       })
     })
-    
+
     if (response.ok) {
       const data = await response.json()
       // 转换后端返回的数据格式为前端需要的格式
-      searchResults.value = data.map(project => ({
+      searchResults.value = data.map((project: ProjectLike) => ({
         id: project.id,
         name: project.name,
-        amount: project.scale || '0',
-        stage: project.stage_text,
-        salesPerson: project.sales_person || '未知'
+        scale: project.scale || '0',
+        stage: project.stage,
+        stage_text: project.stage_text,
+        sales_person: project.sales_person || '未知'
       }))
     } else {
       console.error('关键词搜索失败:', response.statusText)
@@ -330,6 +426,8 @@ const performKeywordSearch = async () => {
     console.error('关键词搜索错误:', error)
     // 错误时显示所有项目
     searchResults.value = projects.value
+  } finally {
+    searching.value = false
   }
 }
 
@@ -339,33 +437,34 @@ const performConditionSearch = () => {
   const salesPerson = conditionSearch.value.salesPerson
   const stage = conditionSearch.value.stage
   const amountRange = conditionSearch.value.amountRange
-  
+
   // 使用从API获取的实际项目数据
-  const results = projects.value.filter(project => {
+  const results = projects.value.filter((project) => {
     // 负责人匹配
     const matchesOwner = !owner || project.owner_username === owner
-    
+
     // 销售人员匹配
     const matchesSalesPerson = !salesPerson || project.sales_person === salesPerson
-    
+
     // 项目阶段匹配
     let matchesStage = !stage
     if (stage && stages[stage]) {
       // API返回的stage是数字
-      matchesStage = stages[stage].includes(parseInt(project.stage))
+      matchesStage = stages[stage].includes(parseInt(String(project.stage)))
     }
-    
+
     // 金额范围匹配
+    const scale = parseFloat(String(project.scale || '0'))
     const matchesAmount = !amountRange || {
-      '0-100': parseFloat(project.scale || '0') <= 100,
-      '100-500': parseFloat(project.scale || '0') > 100 && parseFloat(project.scale || '0') <= 500,
-      '500-1000': parseFloat(project.scale || '0') > 500 && parseFloat(project.scale || '0') <= 1000,
-      '1000+': parseFloat(project.scale || '0') > 1000
+      '0-100': scale <= 100,
+      '100-500': scale > 100 && scale <= 500,
+      '500-1000': scale > 500 && scale <= 1000,
+      '1000+': scale > 1000
     }[amountRange]
-    
+
     return matchesOwner && matchesSalesPerson && matchesStage && matchesAmount
   })
-  
+
   searchResults.value = results
 }
 
@@ -374,26 +473,26 @@ const performLocationSearch = () => {
   const province = locationSearch.value.province
   const city = locationSearch.value.city
   const district = locationSearch.value.district
-  
+
   // 使用从API获取的实际项目数据
-  const results = projects.value.filter(project => {
+  const results = projects.value.filter((project) => {
     // 省份匹配
     const matchesProvince = !province || project.province === province
-    
+
     // 城市匹配
     const matchesCity = !city || project.city === city
-    
+
     // 行政区匹配
     const matchesDistrict = !district || project.district === district
-    
+
     return matchesProvince && matchesCity && matchesDistrict
   })
-  
+
   searchResults.value = results
 }
 
 // 查看详情
-const viewDetails = (projectId) => {
+const viewDetails = (projectId: string | number) => {
   console.log('查看项目详情:', projectId)
   // 实际应该跳转到项目详情页面或打开详情模态框
 }
@@ -401,25 +500,25 @@ const viewDetails = (projectId) => {
 // 省份选择变化时更新城市下拉框
 const onProvinceChange = () => {
   const selectedProvince = locationSearch.value.province
-  
+
   // 清空城市和区/县选择
   locationSearch.value.city = ''
   locationSearch.value.district = ''
-  
+
   // 清空城市和区/县下拉框
   cities.value = []
   districts.value = []
-  
+
   if (selectedProvince) {
     // 从项目数据中过滤出该省份的所有城市并去重
-    const citySet = new Set()
-    
-    projects.value.forEach(project => {
+    const citySet = new Set<string>()
+
+    projects.value.forEach((project) => {
       if (project.province === selectedProvince && project.city) {
         citySet.add(project.city)
       }
     })
-    
+
     // 更新城市下拉框
     cities.value = Array.from(citySet)
   }
@@ -429,23 +528,23 @@ const onProvinceChange = () => {
 const onCityChange = () => {
   const selectedProvince = locationSearch.value.province
   const selectedCity = locationSearch.value.city
-  
+
   // 清空区/县选择
   locationSearch.value.district = ''
-  
+
   // 清空区/县下拉框
   districts.value = []
-  
+
   if (selectedProvince && selectedCity) {
     // 从项目数据中过滤出该省份和城市的所有区/县并去重
-    const districtSet = new Set()
-    
-    projects.value.forEach(project => {
+    const districtSet = new Set<string>()
+
+    projects.value.forEach((project) => {
       if (project.province === selectedProvince && project.city === selectedCity && project.district) {
         districtSet.add(project.district)
       }
     })
-    
+
     // 更新区/县下拉框
     districts.value = Array.from(districtSet)
   }
@@ -455,13 +554,13 @@ const onCityChange = () => {
 onMounted(async () => {
   // 从数据库获取用户列表（用于项目负责人下拉框）
   await fetchUsers()
-  
+
   // 从数据库获取销售人员名单和项目数据
   await fetchOwnersAndSales()
-  
+
   // 初始化时显示所有项目
   searchResults.value = projects.value
-  
+
   // 设置默认日期范围为近一年
   setDefaultDateRange()
 })
@@ -469,229 +568,101 @@ onMounted(async () => {
 
 <style scoped>
 .advanced-search {
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  background: transparent;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #5D5A6D;
+  margin: 0 0 24px;
 }
 
 .search-form-container {
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   width: 100%;
-  max-width: 1400px;
 }
 
 .main-search-row {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
 }
 
 .search-section {
-  flex: 1;
-  min-width: 300px;
-  padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 0;
+  background: rgba(255, 255, 255, 0.86);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border-top: 4px solid #A8E6CF;
 }
 
-/* 响应式调整 */
-@media (max-width: 1200px) {
-  .main-search-row {
-    flex-wrap: wrap;
-  }
-  
-  .search-section {
-    flex: 1 1 30%;
-    min-width: 300px;
-  }
+.search-section:nth-child(2) {
+  border-top-color: #FF9A8B;
 }
 
-@media (max-width: 992px) {
-  .search-section {
-    flex: 1 1 45%;
-  }
+.search-section:nth-child(3) {
+  border-top-color: #7EC8E3;
 }
 
-@media (max-width: 768px) {
-  .search-section {
-    flex: 1 1 100%;
-  }
-}
-
-.search-section h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 16px;
+.search-section :deep(.n-card-header__main) {
+  font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: #5D5A6D;
 }
 
-.search-form {
-  max-width: 100%;
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
 }
 
-.form-row {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-}
-
-.form-group {
-  flex: 1;
-  min-width: 200px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  font-size: 14px;
-  color: #666;
-}
-
-.form-control {
+.search-form :deep(.n-input),
+.search-form :deep(.n-date-picker),
+.search-form :deep(.n-select) {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
 }
 
 .form-actions {
-  margin-top: 20px;
+  margin-top: 4px;
   display: flex;
   justify-content: center;
 }
 
-.btn {
-  padding: 10px 25px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
+.result-card {
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.86);
+  border-top: 4px solid #FFEAA7;
 }
 
-.btn-primary {
-  background-color: #3498db;
-  color: white;
-  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
-}
-
-.btn-primary:hover {
-  background-color: #2980b9;
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
-}
-
-.btn-secondary {
-  background-color: #95a5a6;
-  color: white;
-  box-shadow: 0 2px 4px rgba(149, 165, 166, 0.3);
-}
-
-.btn-secondary:hover {
-  background-color: #7f8c8d;
-  box-shadow: 0 4px 8px rgba(149, 165, 166, 0.4);
-}
-
-/* 搜索结果样式 */
-.search-results {
-  margin-top: 20px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.table th,
-.table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.table th {
-  background-color: #f8f9fa;
+.result-title {
+  font-size: 15px;
   font-weight: 600;
-  color: #333;
-  font-size: 14px;
+  color: #5D5A6D;
 }
 
-.table-striped tbody tr:nth-of-type(odd) {
-  background-color: #f8f9fa;
+.result-card :deep(.n-data-table-th) {
+  background: #FBF7F4;
+  font-weight: 600;
+  color: #5D5A6D;
 }
 
-.table-striped tbody tr:hover {
-  background-color: #e3f2fd;
-}
-
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 13px;
-}
-
-.btn-info {
-  background-color: #1abc9c;
-  color: white;
-  box-shadow: 0 2px 4px rgba(26, 188, 156, 0.3);
-}
-
-.btn-info:hover {
-  background-color: #16a085;
-  box-shadow: 0 4px 8px rgba(26, 188, 156, 0.4);
-}
-
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-  }
-  
-  .form-group {
-    width: 100%;
-  }
-}
-
-/* ==================== 移动端适配 ==================== */
-@media (max-width: 768px) {
-  .advanced-search {
-    padding: 12px;
-    border-radius: 6px;
-  }
-
+@media (max-width: 1200px) {
   .main-search-row {
-    flex-direction: column;
-    gap: 10px;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 20px;
+    margin-bottom: 16px;
   }
 
-  .search-section {
-    flex: 1 1 100%;
-    min-width: 0;
-    padding: 12px;
-  }
-
-  .search-section h4 {
-    font-size: 15px;
-    margin-bottom: 12px;
-  }
-
-  .search-results {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .search-results .table {
-    min-width: 620px;
+  .two-col {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }
 </style>

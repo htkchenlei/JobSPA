@@ -1,13 +1,15 @@
 <template>
   <div class="statistics">
     <div class="statistics-header">
-      <h3>项目统计分析</h3>
+      <h3 class="page-title">项目统计分析</h3>
       <div class="year-filter">
         <span class="year-filter-label">统计年份</span>
-        <select v-model="selectedYear" class="year-select" aria-label="统计年份">
-          <option value="all">所有年份</option>
-          <option v-for="y in yearOptions" :key="y" :value="y">{{ y }} 年</option>
-        </select>
+        <n-select
+          v-model:value="selectedYear"
+          class="year-select"
+          :options="yearSelectOptions"
+          aria-label="统计年份"
+        />
         <span class="filter-count">共 {{ filteredCount }} 个项目</span>
       </div>
     </div>
@@ -15,115 +17,99 @@
     <!-- 图表容器 -->
     <div class="charts-container">
       <!-- 各省份项目数量分布 -->
-      <div class="chart-card">
-        <h4>各省份项目数量分布</h4>
+      <n-card class="chart-card" :bordered="false">
+        <template #header><span class="card-title">各省份项目数量分布</span></template>
         <div class="chart">
           <canvas ref="provinceCountChart"></canvas>
         </div>
-      </div>
-      
+      </n-card>
+
       <!-- 各省份项目金额分布 -->
-      <div class="chart-card">
-        <h4>各省份项目金额分布</h4>
+      <n-card class="chart-card" :bordered="false">
+        <template #header><span class="card-title">各省份项目金额分布</span></template>
         <div class="chart">
           <canvas ref="provinceAmountChart"></canvas>
         </div>
-      </div>
-      
+      </n-card>
+
       <!-- 各阶段项目数量 -->
-      <div class="chart-card">
-        <h4>各阶段项目数量</h4>
+      <n-card class="chart-card" :bordered="false">
+        <template #header><span class="card-title">各阶段项目数量</span></template>
         <div class="chart">
           <canvas ref="stageCountChart"></canvas>
         </div>
-      </div>
-      
+      </n-card>
+
       <!-- 月度新增项目趋势 -->
-      <div class="chart-card">
-        <h4>月度新增项目趋势</h4>
+      <n-card class="chart-card" :bordered="false">
+        <template #header><span class="card-title">月度新增项目趋势</span></template>
         <div class="chart">
           <canvas ref="monthlyTrendChart"></canvas>
         </div>
-      </div>
-      
+      </n-card>
+
       <!-- 项目规模分布 -->
-      <div class="chart-card">
-        <h4>项目规模分布</h4>
+      <n-card class="chart-card" :bordered="false">
+        <template #header><span class="card-title">项目规模分布</span></template>
         <div class="chart">
           <canvas ref="scaleDistributionChart"></canvas>
         </div>
-      </div>
-      
+      </n-card>
+
       <!-- 项目完成金额统计 -->
-      <div class="chart-card">
-        <h4>项目完成金额统计</h4>
+      <n-card class="chart-card" :bordered="false">
+        <template #header><span class="card-title">项目完成金额统计</span></template>
         <div class="chart">
           <canvas ref="maintenanceTrendChart"></canvas>
         </div>
-      </div>
+      </n-card>
 
       <!-- 周日志数量统计 -->
-      <div class="chart-card">
-        <h4>周日志数量（{{ weekLogTitle }}）</h4>
+      <n-card class="chart-card" :bordered="false">
+        <template #header><span class="card-title">周日志数量（{{ weekLogTitle }}）</span></template>
         <div class="chart">
           <canvas ref="weekLogChart"></canvas>
         </div>
-      </div>
+      </n-card>
 
       <!-- 月日志数量统计 -->
-      <div class="chart-card">
-        <h4>月日志数量（{{ monthLogTitle }}）</h4>
+      <n-card class="chart-card" :bordered="false">
+        <template #header><span class="card-title">月日志数量（{{ monthLogTitle }}）</span></template>
         <div class="chart">
           <canvas ref="monthLogChart"></canvas>
         </div>
-      </div>
+      </n-card>
     </div>
-    
+
     <!-- 表格容器 -->
     <div class="tables-container">
       <!-- 销售额统计数据 -->
-      <div class="table-card">
-        <h4>销售额统计数据</h4>
-        <div class="table-responsive">
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>省份</th>
-                <th>省份统计(万元)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(item, index) in salesStatistics" :key="index">
-                <td>{{ item.province }}</td>
-                <td>{{ item.amount }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
+      <n-card class="table-card" :bordered="false">
+        <template #header><span class="card-title">销售额统计数据</span></template>
+        <n-data-table
+          v-if="salesStatistics.length > 0"
+          :columns="salesColumns"
+          :data="salesStatistics"
+          :bordered="false"
+          :single-line="false"
+          size="small"
+        />
+        <n-empty v-else description="暂无数据" size="small" />
+      </n-card>
+
       <!-- 各阶段统计 -->
-      <div class="table-card">
-        <h4>各阶段统计</h4>
-        <div class="table-responsive">
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>阶段</th>
-                <th>各阶段统计</th>
-                <th>项目数量</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(item, index) in stageStatistics" :key="index">
-                <td>{{ item.stage }}</td>
-                <td>{{ item.stageText }}</td>
-                <td>{{ item.count }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <n-card class="table-card" :bordered="false">
+        <template #header><span class="card-title">各阶段统计</span></template>
+        <n-data-table
+          v-if="stageStatistics.length > 0"
+          :columns="stageColumns"
+          :data="stageStatistics"
+          :bordered="false"
+          :single-line="false"
+          size="small"
+        />
+        <n-empty v-else description="暂无数据" size="small" />
+      </n-card>
     </div>
   </div>
 </template>
@@ -131,12 +117,19 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Chart from 'chart.js/auto'
-import * as echarts from 'echarts'
+import { NCard, NSelect, NDataTable, NEmpty } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
 
 // 年份筛选（默认为本年度，'all' 表示所有年份；按项目创建日期 start_date 归年）
 const currentYear = new Date().getFullYear()
 const selectedYear = ref<number | string>(currentYear)
 const yearOptions = ref<number[]>([])
+
+// 年份下拉选项（'all' 优先，其余年份降序）——仅替换承载组件，筛选行为完全不变
+const yearSelectOptions = computed(() => [
+  { label: '所有年份', value: 'all' },
+  ...yearOptions.value.map((y) => ({ label: `${y} 年`, value: y }))
+])
 
 // 图表引用
 const provinceCountChart = ref(null)
@@ -150,8 +143,19 @@ const monthLogChart = ref(null)
 
 // 数据
 const projects = ref([])
-const salesStatistics = ref([])
-const stageStatistics = ref([])
+const salesStatistics = ref<{ province: string; amount: number | string }[]>([])
+const stageStatistics = ref<{ stage: number | string; stageText: string; count: number }[]>([])
+
+// 表格列定义（原手写 <table> 平移到 n-data-table）
+const salesColumns: DataTableColumns<{ province: string; amount: number | string }> = [
+  { title: '省份', key: 'province' },
+  { title: '省份统计(万元)', key: 'amount' }
+]
+const stageColumns: DataTableColumns<{ stage: number | string; stageText: string; count: number }> = [
+  { title: '阶段', key: 'stage' },
+  { title: '各阶段统计', key: 'stageText' },
+  { title: '项目数量', key: 'count' }
+]
 
 // 图表实例缓存（切换年份时先销毁再重建）
 const chartInstances: Record<string, any> = {}
@@ -756,11 +760,11 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 
-.statistics h3 {
+.page-title {
   font-size: 22px;
   font-weight: 700;
   color: #5D5A6D;
-  margin-bottom: 0;
+  margin: 0;
 }
 
 .statistics-header {
@@ -785,25 +789,7 @@ onBeforeUnmount(() => {
 }
 
 .year-select {
-  min-width: 120px;
-  padding: 8px 14px;
-  font-size: 14px;
-  color: #5D5A6D;
-  background: white;
-  border: 1px solid #F0E6E3;
-  border-radius: 12px;
-  outline: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.year-select:hover {
-  border-color: #A8E6CF;
-}
-
-.year-select:focus {
-  border-color: #7DD3C0;
-  box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.25);
+  width: 140px;
 }
 
 .filter-count {
@@ -818,62 +804,80 @@ onBeforeUnmount(() => {
   margin-bottom: 28px;
 }
 
-.chart-card {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
+/* 图表卡 / 表格卡：n-card 承载，顶部 4px 渐变色条沿用原设计 */
+:deep(.chart-card),
+:deep(.table-card) {
+  border-radius: 20px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  background: white;
   border: 1px solid #F0E6E3;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
   overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.chart-card::before {
+/* 内容区留白由全局 style.css 的 `.chart-card .n-card-content` 统一处理
+   （Naive 真实类名是单连字符，且 scoped 无法穿透到 n-card 内部） */
+:deep(.chart-card .n-card-header),
+:deep(.table-card .n-card-header) {
+  padding: 18px 24px 0;
+}
+
+:deep(.chart-card::before),
+:deep(.table-card::before) {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 4px;
+  z-index: 1;
 }
 
-.chart-card:nth-child(1)::before {
+:deep(.chart-card:nth-child(1)::before) {
   background: linear-gradient(90deg, #A8E6CF, #7DD3C0);
 }
 
-.chart-card:nth-child(2)::before {
+:deep(.chart-card:nth-child(2)::before) {
   background: linear-gradient(90deg, #FF9A8B, #FFB7B2);
 }
 
-.chart-card:nth-child(3)::before {
+:deep(.chart-card:nth-child(3)::before) {
   background: linear-gradient(90deg, #7EC8E3, #6BB8D3);
 }
 
-.chart-card:nth-child(4)::before {
+:deep(.chart-card:nth-child(4)::before) {
   background: linear-gradient(90deg, #C3B1E1, #B19FD0);
 }
 
-.chart-card:nth-child(5)::before {
+:deep(.chart-card:nth-child(5)::before) {
   background: linear-gradient(90deg, #FFEAA7, #FDCB6E);
 }
 
-.chart-card:nth-child(6)::before {
+:deep(.chart-card:nth-child(6)::before) {
   background: linear-gradient(90deg, #D4C4F0, #C3B1E1);
 }
 
-.chart-card:hover {
+:deep(.chart-card:nth-child(7)::before) {
+  background: linear-gradient(90deg, #A8E6CF, #7EC8E3);
+}
+
+:deep(.chart-card:nth-child(8)::before) {
+  background: linear-gradient(90deg, #FF9A8B, #C3B1E1);
+}
+
+:deep(.table-card::before) {
+  background: linear-gradient(90deg, #A8E6CF, #C3B1E1);
+}
+
+:deep(.chart-card:hover) {
   transform: translateY(-4px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
-.chart-card h4 {
-  margin-top: 0;
-  margin-bottom: 20px;
+.card-title {
   font-size: 16px;
   font-weight: 600;
   color: #5D5A6D;
-  text-align: left;
 }
 
 .chart {
@@ -886,72 +890,10 @@ onBeforeUnmount(() => {
   gap: 20px;
 }
 
-.table-card {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-  border: 1px solid #F0E6E3;
-  position: relative;
-  overflow: hidden;
-}
-
-.table-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #A8E6CF, #C3B1E1);
-}
-
-.table-card h4 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #5D5A6D;
-  text-align: left;
-}
-
-.table-responsive {
-  overflow-x: auto;
-  border-radius: 12px;
-  border: 1px solid #F0E6E3;
-}
-
-.table {
-  width: 100%;
-  margin-bottom: 0;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  padding: 14px 16px;
-  text-align: left;
-  border-bottom: 1px solid #F0E6E3;
-}
-
-.table th {
+:deep(.table-card .n-data-table-th) {
   background: linear-gradient(90deg, rgba(168, 230, 207, 0.15), rgba(195, 177, 225, 0.1));
   font-weight: 600;
   color: #5D5A6D;
-  font-size: 13px;
-}
-
-.table td {
-  color: #5D5A6D;
-  font-size: 13px;
-}
-
-.table-striped tbody tr:nth-of-type(odd) {
-  background-color: rgba(168, 230, 207, 0.05);
-}
-
-.table-striped tbody tr:hover {
-  background-color: rgba(168, 230, 207, 0.1);
 }
 
 /* 响应式布局 */
@@ -973,14 +915,14 @@ onBeforeUnmount(() => {
     margin-bottom: 16px;
   }
 
-  .chart-card,
-  .table-card {
-    padding: 16px;
+  :deep(.chart-card .n-card-header),
+  :deep(.table-card .n-card-header) {
+    padding: 14px 16px 0;
   }
 }
 
 @media (max-width: 480px) {
-  .statistics h3 {
+  .page-title {
     font-size: 20px;
   }
 
@@ -994,18 +936,17 @@ onBeforeUnmount(() => {
     flex-wrap: wrap;
   }
 
+  .year-select {
+    flex: 1;
+    min-width: 120px;
+  }
+
   .chart {
     height: 240px;
   }
 
-  .chart-card h4,
-  .table-card h4 {
+  .card-title {
     font-size: 14px;
-    margin-bottom: 12px;
-  }
-
-  .table-responsive {
-    border-radius: 8px;
   }
 }
 </style>

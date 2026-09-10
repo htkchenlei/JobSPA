@@ -3,147 +3,66 @@
     <div class="project-header">
       <h3>项目管理</h3>
       <div class="header-buttons">
-          <button class="btn btn-primary" @click="openAddProjectModal">新建项目</button>
-          <button class="btn btn-secondary" @click="toggleCompletedProjects">
-            {{ showCompletedOnly ? '查看其它' : '查看已完成' }}
-          </button>
-        </div>
+        <n-button class="mc-btn-coral" @click="openAddProjectModal">新建项目</n-button>
+        <n-button class="mc-btn-lavender" @click="toggleCompletedProjects">
+          {{ showCompletedOnly ? '查看其它' : '查看已完成' }}
+        </n-button>
+      </div>
     </div>
-    
+
     <!-- 已完成项目 -->
     <div v-if="showCompletedOnly && completedProjects.length > 0">
       <h4 class="project-section-title">已完成项目</h4>
       <div class="project-list">
-        <div 
-          class="project-card" 
-          :class="getStageClass(project.stage)" 
-          v-for="project in completedProjects" 
+        <ProjectCard
+          v-for="project in completedProjects"
           :key="project.id"
-        >
-        <div class="project-card-header">
-          <h4 class="project-name">{{ project.name }}</h4>
-          <span class="status-badge" :class="getStageClass(project.stage)">
-            {{ project.stage_text }}
-          </span>
-        </div>
-        <div class="project-card-body">
-          <div class="project-info">
-            <div class="info-item">
-              <label>规模：</label>
-              <span>{{ project.scale || '未设置' }}</span>
-            </div>
-            <div class="info-item">
-              <label>阶段：</label>
-              <span>{{ project.stage_text }}</span>
-            </div>
-            <div class="info-item">
-              <label>更新日期：</label>
-              <span>{{ getLatestUpdateDate(project.id) || '暂无更新' }}</span>
-            </div>
-          </div>
-          <div class="project-update">
-            <label>最近更新：</label>
-            <p class="update-content">{{ getLatestUpdate(project.id) || '暂无更新' }}</p>
-          </div>
-          <div class="project-buttons">
-            <button class="btn btn-sm btn-success" @click="updateProgress(project)">更新</button>
-            <button class="btn btn-sm btn-info" @click="viewProjectProgress(project)">详情</button>
-            <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteProject(project.id)">删除</button>
-          </div>
-        </div>
-        </div>
+          :project="project"
+          :is-admin="isAdmin"
+          :get-latest-update-date="getLatestUpdateDate"
+          :get-latest-update="getLatestUpdate"
+          @update="updateProgress"
+          @view="viewProjectProgress"
+          @delete="deleteProject"
+        />
       </div>
     </div>
-    
+
     <!-- 非已完成项目 -->
     <template v-else>
       <!-- 进行中项目 -->
       <div v-if="activeProjects.length > 0">
         <h4 class="project-section-title">进行中项目</h4>
         <div class="project-list">
-          <div 
-            class="project-card" 
-            :class="getStageClass(project.stage)" 
-            v-for="project in activeProjects" 
+          <ProjectCard
+            v-for="project in activeProjects"
             :key="project.id"
-          >
-          <div class="project-card-header">
-            <h4 class="project-name">{{ project.name }}</h4>
-            <span class="status-badge" :class="getStageClass(project.stage)">
-              {{ project.stage_text }}
-            </span>
-          </div>
-          <div class="project-card-body">
-            <div class="project-info">
-              <div class="info-item">
-                <label>规模：</label>
-                <span>{{ project.scale || '未设置' }}</span>
-              </div>
-              <div class="info-item">
-                <label>阶段：</label>
-                <span>{{ project.stage_text }}</span>
-              </div>
-              <div class="info-item">
-                <label>更新日期：</label>
-                <span>{{ getLatestUpdateDate(project.id) || '暂无更新' }}</span>
-              </div>
-            </div>
-            <div class="project-update">
-              <label>最近更新：</label>
-              <p class="update-content">{{ getLatestUpdate(project.id) || '暂无更新' }}</p>
-            </div>
-            <div class="project-buttons">
-              <button class="btn btn-sm btn-success" @click="updateProgress(project)">更新</button>
-              <button class="btn btn-sm btn-info" @click="viewProjectProgress(project)">详情</button>
-              <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteProject(project.id)">删除</button>
-            </div>
-          </div>
-          </div>
+            :project="project"
+            :is-admin="isAdmin"
+            :get-latest-update-date="getLatestUpdateDate"
+            :get-latest-update="getLatestUpdate"
+            @update="updateProgress"
+            @view="viewProjectProgress"
+            @delete="deleteProject"
+          />
         </div>
       </div>
-      
+
       <!-- 近期项目（1~3个月） -->
       <div v-if="overdueProjects.length > 0">
         <h4 class="project-section-title">近期项目</h4>
         <div class="project-list">
-          <div 
-            class="project-card" 
-            :class="getStageClass(project.stage)" 
-            v-for="project in overdueProjects" 
+          <ProjectCard
+            v-for="project in overdueProjects"
             :key="project.id"
-          >
-          <div class="project-card-header">
-            <h4 class="project-name">{{ project.name }}</h4>
-            <span class="status-badge" :class="getStageClass(project.stage)">
-              {{ project.stage_text }}
-            </span>
-          </div>
-          <div class="project-card-body">
-            <div class="project-info">
-              <div class="info-item">
-                <label>规模：</label>
-                <span>{{ project.scale || '未设置' }}</span>
-              </div>
-              <div class="info-item">
-                <label>阶段：</label>
-                <span>{{ project.stage_text }}</span>
-              </div>
-              <div class="info-item">
-                <label>更新日期：</label>
-                <span>{{ getLatestUpdateDate(project.id) || '暂无更新' }}</span>
-              </div>
-            </div>
-            <div class="project-update">
-              <label>最近更新：</label>
-              <p class="update-content">{{ getLatestUpdate(project.id) || '暂无更新' }}</p>
-            </div>
-            <div class="project-buttons">
-              <button class="btn btn-sm btn-success" @click="updateProgress(project)">更新</button>
-              <button class="btn btn-sm btn-info" @click="viewProjectProgress(project)">详情</button>
-              <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteProject(project.id)">删除</button>
-            </div>
-          </div>
-          </div>
+            :project="project"
+            :is-admin="isAdmin"
+            :get-latest-update-date="getLatestUpdateDate"
+            :get-latest-update="getLatestUpdate"
+            @update="updateProgress"
+            @view="viewProjectProgress"
+            @delete="deleteProject"
+          />
         </div>
       </div>
 
@@ -151,278 +70,255 @@
       <div v-if="staleProjects.length > 0" class="stale-section">
         <div class="project-section-head">
           <h4 class="project-section-title">超期项目</h4>
-          <button class="btn btn-sm show-more-btn" @click="showStaleProjects = !showStaleProjects">
+          <n-button class="show-more-btn mc-btn-lavender" size="small" @click="showStaleProjects = !showStaleProjects">
             {{ showStaleProjects ? '收起' : '显示更多' }}
-          </button>
+          </n-button>
         </div>
         <div v-if="showStaleProjects" class="project-list">
-          <div 
-            class="project-card" 
-            :class="getStageClass(project.stage)" 
-            v-for="project in staleProjects" 
+          <ProjectCard
+            v-for="project in staleProjects"
             :key="project.id"
-          >
-          <div class="project-card-header">
-            <h4 class="project-name">{{ project.name }}</h4>
-            <span class="status-badge" :class="getStageClass(project.stage)">
-              {{ project.stage_text }}
-            </span>
-          </div>
-          <div class="project-card-body">
-            <div class="project-info">
-              <div class="info-item">
-                <label>规模：</label>
-                <span>{{ project.scale || '未设置' }}</span>
-              </div>
-              <div class="info-item">
-                <label>阶段：</label>
-                <span>{{ project.stage_text }}</span>
-              </div>
-              <div class="info-item">
-                <label>更新日期：</label>
-                <span>{{ getLatestUpdateDate(project.id) || '暂无更新' }}</span>
-              </div>
-            </div>
-            <div class="project-update">
-              <label>最近更新：</label>
-              <p class="update-content">{{ getLatestUpdate(project.id) || '暂无更新' }}</p>
-            </div>
-            <div class="project-buttons">
-              <button class="btn btn-sm btn-success" @click="updateProgress(project)">更新</button>
-              <button class="btn btn-sm btn-info" @click="viewProjectProgress(project)">详情</button>
-              <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteProject(project.id)">删除</button>
-            </div>
-          </div>
-          </div>
+            :project="project"
+            :is-admin="isAdmin"
+            :get-latest-update-date="getLatestUpdateDate"
+            :get-latest-update="getLatestUpdate"
+            @update="updateProgress"
+            @view="viewProjectProgress"
+            @delete="deleteProject"
+          />
         </div>
       </div>
     </template>
     
     <!-- 新建/编辑项目弹窗 -->
-    <div v-if="showAddProject || showEditProject" class="modal-overlay">
-      <div class="modal">
-        <div class="modal-header">
-          <h4>{{ showAddProject ? '新建项目' : '编辑项目' }}</h4>
-          <button class="close-btn" @click="closeModal">&times;</button>
+    <n-modal
+      v-model:show="showAddProject"
+      preset="card"
+      class="mc-modal"
+      :title="'新建项目'"
+      :bordered="false"
+      :mask-closable="false"
+      @close="closeModal"
+    >
+      <n-form :model="formData" class="form-grid" label-placement="top">
+        <n-form-item label="项目名称" class="field-full">
+          <n-input v-model:value="formData.name" placeholder="请输入项目名称" />
+        </n-form-item>
+        <n-form-item label="客户名称" class="field-full">
+          <n-input v-model:value="formData.client_name" placeholder="请输入客户名称" />
+        </n-form-item>
+        <n-form-item label="金额">
+          <n-input v-model:value="formData.scale" placeholder="如：120万" />
+        </n-form-item>
+        <n-form-item label="销售">
+          <n-input v-model:value="formData.sales_person" placeholder="请输入销售" />
+        </n-form-item>
+        <n-form-item label="开始日期">
+          <n-date-picker v-model:formatted-value="formData.start_date" value-format="yyyy-MM-dd" type="date" placeholder="选择日期" />
+        </n-form-item>
+        <n-form-item label="项目阶段">
+          <n-select v-model:value="formData.stage" :options="stageOptions" placeholder="请选择阶段" />
+        </n-form-item>
+        <n-form-item label="所有者">
+          <n-input v-model:value="formData.owner" placeholder="请输入所有者" />
+        </n-form-item>
+        <n-form-item label="省份">
+          <n-select v-model:value="formData.province" :options="provinceOptions" filterable placeholder="请选择省份" />
+        </n-form-item>
+        <n-form-item label="城市">
+          <n-input v-model:value="formData.city" placeholder="请输入城市" />
+        </n-form-item>
+        <n-form-item label="区域">
+          <n-input v-model:value="formData.district" placeholder="请输入区域" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <div class="mc-modal-footer">
+          <n-button class="mc-btn-lavender" @click="closeModal">取消</n-button>
+          <n-button class="mc-btn-coral" :loading="savingProject" @click="saveProject">保存</n-button>
         </div>
-        <div class="modal-body">
-          <form @submit.prevent="saveProject">
-            <div class="form-row">
-              <div class="form-group col-md-12">
-                <label>项目名称</label>
-                <input type="text" v-model="formData.name" class="form-control" required>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-12">
-                <label>客户名称</label>
-                <input type="text" v-model="formData.client_name" class="form-control" required>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>金额</label>
-                <input type="text" v-model="formData.scale" class="form-control" required>
-              </div>
-              <div class="form-group col-md-6">
-                <label>销售</label>
-                <input type="text" v-model="formData.sales_person" class="form-control" required>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>开始日期</label>
-                <input type="date" v-model="formData.start_date" class="form-control" required>
-              </div>
-              <div class="form-group col-md-6">
-                <label>项目阶段</label>
-                <select v-model="formData.stage" class="form-control" required>
-                  <option v-for="(text, value) in STAGE_MAP" :key="value" :value="value">
-                    {{ text }}
-                  </option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>所有者</label>
-                <input type="text" v-model="formData.owner" class="form-control">
-              </div>
-              <div class="form-group col-md-6">
-                <label>省份</label>
-                <select v-model="formData.province" class="form-control" required>
-                  <option value="">请选择省份</option>
-                  <option v-for="province in PROVINCES" :key="province" :value="province">
-                    {{ province }}
-                  </option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>城市</label>
-                <input type="text" v-model="formData.city" class="form-control">
-              </div>
-              <div class="form-group col-md-6">
-                <label>区域</label>
-                <input type="text" v-model="formData.district" class="form-control">
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="closeModal">取消</button>
-              <button type="submit" class="btn btn-primary" :disabled="savingProject">{{ savingProject ? '保存中…' : '保存' }}</button>
-            </div>
-          </form>
+      </template>
+    </n-modal>
+
+    <!-- 编辑项目弹窗（复用同一套表单，避免结构与主题分叉） -->
+    <n-modal
+      v-model:show="showEditProject"
+      preset="card"
+      class="mc-modal"
+      title="编辑项目"
+      :bordered="false"
+      :mask-closable="false"
+      @close="closeModal"
+    >
+      <n-form :model="formData" class="form-grid" label-placement="top">
+        <n-form-item label="项目名称" class="field-full">
+          <n-input v-model:value="formData.name" placeholder="请输入项目名称" />
+        </n-form-item>
+        <n-form-item label="客户名称" class="field-full">
+          <n-input v-model:value="formData.client_name" placeholder="请输入客户名称" />
+        </n-form-item>
+        <n-form-item label="金额">
+          <n-input v-model:value="formData.scale" placeholder="如：120万" />
+        </n-form-item>
+        <n-form-item label="销售">
+          <n-input v-model:value="formData.sales_person" placeholder="请输入销售" />
+        </n-form-item>
+        <n-form-item label="开始日期">
+          <n-date-picker v-model:formatted-value="formData.start_date" value-format="yyyy-MM-dd" type="date" placeholder="选择日期" />
+        </n-form-item>
+        <n-form-item label="项目阶段">
+          <n-select v-model:value="formData.stage" :options="stageOptions" placeholder="请选择阶段" />
+        </n-form-item>
+        <n-form-item label="所有者">
+          <n-input v-model:value="formData.owner" placeholder="请输入所有者" />
+        </n-form-item>
+        <n-form-item label="省份">
+          <n-select v-model:value="formData.province" :options="provinceOptions" filterable placeholder="请选择省份" />
+        </n-form-item>
+        <n-form-item label="城市">
+          <n-input v-model:value="formData.city" placeholder="请输入城市" />
+        </n-form-item>
+        <n-form-item label="区域">
+          <n-input v-model:value="formData.district" placeholder="请输入区域" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <div class="mc-modal-footer">
+          <n-button class="mc-btn-lavender" @click="closeModal">取消</n-button>
+          <n-button class="mc-btn-coral" :loading="savingProject" @click="saveProject">保存</n-button>
         </div>
-      </div>
-    </div>
-    
+      </template>
+    </n-modal>
+
     <!-- 更新项目进展弹窗 -->
-    <div v-if="showUpdateProgress" class="modal-overlay">
-      <div class="modal view-progress-modal">
-        <div class="modal-header">
-          <h4>更新项目进展 - {{ currentProject?.name }}</h4>
-          <button class="close-btn" @click="showUpdateProgress = false">&times;</button>
-        </div>
-        <div class="modal-body view-progress-body">
-          <!-- 新更新表单 -->
-          <form @submit.prevent="saveProgress" class="mb-4">
-            <div class="form-group with-checkbox">
-              <label for="updateContent">最新更新</label>
-              <div class="checkbox-right">
-                <input type="checkbox" class="form-check-input" id="importantUpdate" v-model="progressForm.is_important">
-                <label class="form-check-label" for="importantUpdate">重要更新</label>
+    <n-modal
+      v-model:show="showUpdateProgress"
+      preset="card"
+      class="mc-modal view-progress-modal"
+      :title="`更新项目进展 - ${currentProject?.name || ''}`"
+      :bordered="false"
+    >
+      <div class="view-progress-body">
+        <!-- 新更新表单 -->
+        <n-form :model="progressForm" label-placement="top" class="progress-form">
+          <n-form-item label="最新更新">
+            <template #label>
+              <div class="progress-label-row">
+                <span>最新更新</span>
+                <n-checkbox v-model:checked="progressForm.is_important">重要更新</n-checkbox>
               </div>
-              <textarea v-model="progressForm.update_content" class="form-control" rows="3" id="updateContent" required></textarea>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="showUpdateProgress = false">取消</button>
-              <button type="submit" class="btn btn-primary" :disabled="savingProgress">{{ savingProgress ? '保存中…' : '保存' }}</button>
-            </div>
-          </form>
-          
-          <!-- 历史更新记录 -->
-          <div class="mt-4">
-            <h5>历史更新记录</h5>
-            <div v-if="currentProjectProgress && currentProjectProgress.length > 0">
-              <div class="progress-item" v-for="(progress, index) in currentProjectProgress" :key="index" :class="{ 'important-progress': progress.is_important === 1 }">
-                <div class="progress-content">
-                  <span class="progress-meta">{{ progress.update_date }} {{ progress.update_time }}@{{ getUserName(progress.updated_by) }}：</span>
-                  <span class="progress-text">{{ progress.update_content }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-else class="no-progress">
-              暂无更新记录
-            </div>
-          </div>
+            </template>
+            <n-input
+              v-model:value="progressForm.update_content"
+              type="textarea"
+              :rows="3"
+              :placeholder="'请填写本次更新内容'"
+            />
+          </n-form-item>
+        </n-form>
+        <div class="mc-modal-footer progress-actions">
+          <n-button class="mc-btn-lavender" @click="showUpdateProgress = false">取消</n-button>
+          <n-button class="mc-btn-coral" :loading="savingProgress" @click="saveProgress">保存</n-button>
         </div>
+
+        <!-- 历史更新记录 -->
+        <h5 class="progress-history-title">历史更新记录</h5>
+        <n-timeline v-if="currentProjectProgress && currentProjectProgress.length > 0" class="progress-timeline">
+          <n-timeline-item
+            v-for="(progress, index) in currentProjectProgress"
+            :key="index"
+            :type="progress.is_important === 1 ? 'error' : 'success'"
+            :color="progress.is_important === 1 ? IMPORTANT_COLOR : getStageMeta(5).solid"
+            :time="`${progress.update_date} ${progress.update_time}@${getUserName(progress.updated_by)}`"
+          >
+            <span :class="{ 'important-progress-text': progress.is_important === 1 }">
+              {{ progress.update_content }}
+            </span>
+          </n-timeline-item>
+        </n-timeline>
+        <n-empty v-else description="暂无更新记录" size="small" />
       </div>
-    </div>
-    
+    </n-modal>
+
     <!-- 查看项目更新记录弹窗 -->
-    <div v-if="showViewProgress" class="modal-overlay">
-      <div class="modal view-progress-modal">
-        <div class="modal-header">
-          <h4>项目详情 - {{ currentProject?.name }}</h4>
-          <button class="close-btn" @click="showViewProgress = false">&times;</button>
-        </div>
-        <div class="modal-body view-progress-body">
+    <n-modal
+      v-model:show="showViewProgress"
+      preset="card"
+      class="mc-modal view-progress-modal"
+      :title="`项目详情 - ${currentProject?.name || ''}`"
+      :bordered="false"
+    >
+      <div class="view-progress-body">
           <!-- 项目信息编辑表单 -->
-          <form @submit.prevent="saveProject" class="mb-6">
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>项目名称</label>
-                <input type="text" v-model="formData.name" class="form-control" required>
-              </div>
-              <div class="form-group col-md-6">
-                <label>客户名称</label>
-                <input type="text" v-model="formData.client_name" class="form-control" required>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-4">
-                <label>金额</label>
-                <input type="text" v-model="formData.scale" class="form-control" required>
-              </div>
-              <div class="form-group col-md-4">
-                <label>销售</label>
-                <input type="text" v-model="formData.sales_person" class="form-control" required>
-              </div>
-              <div class="form-group col-md-4">
-                <label>开始日期</label>
-                <input type="date" v-model="formData.start_date" class="form-control" required>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label>项目阶段</label>
-                <select v-model="formData.stage" class="form-control" required>
-                  <option v-for="(text, value) in STAGE_MAP" :key="value" :value="value">
-                    {{ text }}
-                  </option>
-                </select>
-              </div>
-              <div class="form-group col-md-6">
-                <label>所有者</label>
-                <input type="text" v-model="formData.owner_username" class="form-control">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-4">
-                <label>省份</label>
-                <select v-model="formData.province" class="form-control" required>
-                  <option value="">请选择省份</option>
-                  <option v-for="province in PROVINCES" :key="province" :value="province">
-                    {{ province }}
-                  </option>
-                </select>
-              </div>
-              <div class="form-group col-md-4">
-                <label>城市</label>
-                <input type="text" v-model="formData.city" class="form-control">
-              </div>
-              <div class="form-group col-md-4">
-                <label>区域</label>
-                <input type="text" v-model="formData.district" class="form-control">
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="showViewProgress = false">关闭</button>
-              <button type="submit" class="btn btn-primary" :disabled="savingProject">{{ savingProject ? '保存中…' : '保存' }}</button>
-            </div>
-          </form>
-        </div>
+          <n-form :model="formData" class="form-grid detail-form" label-placement="top">
+            <n-form-item label="项目名称">
+              <n-input v-model:value="formData.name" placeholder="请输入项目名称" />
+            </n-form-item>
+            <n-form-item label="客户名称">
+              <n-input v-model:value="formData.client_name" placeholder="请输入客户名称" />
+            </n-form-item>
+            <n-form-item label="金额">
+              <n-input v-model:value="formData.scale" placeholder="如：120万" />
+            </n-form-item>
+            <n-form-item label="销售">
+              <n-input v-model:value="formData.sales_person" placeholder="请输入销售" />
+            </n-form-item>
+            <n-form-item label="开始日期">
+              <n-date-picker v-model:formatted-value="formData.start_date" value-format="yyyy-MM-dd" type="date" placeholder="选择日期" />
+            </n-form-item>
+            <n-form-item label="项目阶段">
+              <n-select v-model:value="formData.stage" :options="stageOptions" placeholder="请选择阶段" />
+            </n-form-item>
+            <n-form-item label="所有者">
+              <n-input v-model:value="formData.owner_username" placeholder="请输入所有者" />
+            </n-form-item>
+            <n-form-item label="省份">
+              <n-select v-model:value="formData.province" :options="provinceOptions" filterable placeholder="请选择省份" />
+            </n-form-item>
+            <n-form-item label="城市">
+              <n-input v-model:value="formData.city" placeholder="请输入城市" />
+            </n-form-item>
+            <n-form-item label="区域">
+              <n-input v-model:value="formData.district" placeholder="请输入区域" />
+            </n-form-item>
+          </n-form>
+          <div class="mc-modal-footer">
+            <n-button class="mc-btn-lavender" @click="showViewProgress = false">关闭</n-button>
+            <n-button class="mc-btn-coral" :loading="savingProject" @click="saveProject">保存</n-button>
+          </div>
       </div>
-    </div>
-    
+    </n-modal>
+
     <!-- 二次确认对话框 -->
-    <div v-if="showConfirmDialog" class="modal-overlay">
-      <div class="modal">
-        <div class="modal-header">
-          <h4>确认取消</h4>
-          <button class="close-btn" @click="showConfirmDialog = false">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p>您确定要取消创建项目吗？已填写的信息将不会保存。</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="showConfirmDialog = false">继续编辑</button>
-          <button type="button" class="btn btn-primary" @click="confirmCloseModal">确定取消</button>
-        </div>
-      </div>
-    </div>
+    <n-modal
+      v-model:show="showConfirmDialog"
+      preset="dialog"
+      class="mc-modal"
+      type="warning"
+      title="确认取消"
+      content="您确定要取消吗？已填写的信息将不会保存。"
+      positive-text="确定取消"
+      negative-text="继续编辑"
+      @positive-click="confirmCloseModal"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import {
+  NButton, NModal, NForm, NFormItem, NInput, NSelect, NDatePicker,
+  NTag, NTimeline, NTimelineItem, NCheckbox, NEmpty, NPopconfirm, NSpin
+} from 'naive-ui'
+import { message, dialog } from '../utils/feedback'
+import ProjectCard from '../components/ProjectCard.vue'
+import { getStageMeta, IMPORTANT_COLOR } from '../constants/stageColors'
 
 const route = useRoute()
 
 // 项目阶段映射（统一 5 档）
-const STAGE_MAP = {
+const STAGE_MAP: Record<number, string> = {
   1: '立项中',
   2: '已立项',
   3: '招投标',
@@ -440,6 +336,13 @@ const PROVINCES = [
   '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区',
   '新疆维吾尔自治区', '台湾省', '香港特别行政区', '澳门特别行政区'
 ]
+
+// n-select 选项
+const stageOptions = Object.entries(STAGE_MAP).map(([value, label]) => ({
+  label,
+  value: Number(value)
+}))
+const provinceOptions = PROVINCES.map((p) => ({ label: p, value: p }))
 
 // 项目数据
 const projects = ref([])
@@ -464,12 +367,28 @@ const savingProgress = ref(false)
 const savingProject = ref(false)
 
 // 表单数据
-const formData = ref({
+// 注意：start_date 绑定到 n-date-picker，空值必须是 null。
+// 传 '' 会在组件内部 formatDate('') 时抛 RangeError: Invalid time value，导致整页白屏。
+const formData = ref<{
+  id: string
+  name: string
+  client_name: string
+  scale: string
+  start_date: string | null
+  location: string
+  sales_person: string
+  stage: number
+  owner: string
+  owner_username: string
+  province: string
+  city: string
+  district: string
+}>({
   id: '',
   name: '',
   client_name: '',
   scale: '',
-  start_date: '',
+  start_date: null,
   location: '',
   sales_person: '',
   stage: 1,
@@ -658,9 +577,8 @@ const editProject = (project) => {
   showAddProject.value = false
 }
 
-// 关闭弹窗
+// 关闭弹窗：弹窗内已填写内容时先二次确认
 const closeModal = () => {
-  // 显示二次确认对话框
   showConfirmDialog.value = true
 }
 
@@ -694,7 +612,7 @@ const saveProject = async () => {
           name: '',
           client_name: '',
           scale: '',
-          start_date: '',
+          start_date: null,
           location: '',
           sales_person: '',
           stage: 1,
@@ -877,7 +795,7 @@ const saveProject = async () => {
           name: '',
           client_name: '',
           scale: '',
-          start_date: '',
+          start_date: null,
           location: '',
           sales_person: '',
           stage: 1,
@@ -914,7 +832,7 @@ const saveProject = async () => {
           name: '',
           client_name: '',
           scale: '',
-          start_date: '',
+          start_date: null,
           location: '',
           sales_person: '',
           stage: 1,
@@ -957,7 +875,7 @@ const saveProject = async () => {
     }
   } catch (error) {
     console.error('保存项目失败:', error)
-    alert('保存失败，请重试')
+    message.error('保存失败，请重试')
   } finally {
     savingProject.value = false
   }
@@ -1114,21 +1032,21 @@ const saveProgress = async () => {
         }
         // 执行后台更新
         updateProjectInfo()
+        message.success('进展已保存')
       } else {
-        alert('保存失败，请重试')
+        message.error('保存失败，请重试')
       }
     }
   } catch (error) {
     console.error('保存进展失败:', error)
-    alert('保存失败，请重试')
+    message.error('保存失败，请重试')
   } finally {
     savingProgress.value = false
   }
 }
 
-// 删除项目
+// 删除项目（确认由模板中的 n-popconfirm 负责，此处只执行删除）
 const deleteProject = async (id) => {
-  if (!confirm('确定要删除这个项目吗？')) return
   try {
     const token = sessionStorage.getItem('token')
     const response = await fetch(`/api/projects/${id}`, {
@@ -1136,16 +1054,17 @@ const deleteProject = async (id) => {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     })
     if (response.ok) {
+      message.success('项目已删除')
       await fetchProjects()
     } else if (response.status === 403) {
-      alert('无权限：仅管理员可删除项目')
+      message.error('无权限：仅管理员可删除项目')
     } else {
       const err = await response.json().catch(() => null)
-      alert('删除失败: ' + (err?.error || response.statusText))
+      message.error('删除失败: ' + (err?.error || response.statusText))
     }
   } catch (error) {
     console.error('删除项目失败:', error)
-    alert('删除项目失败，请稍后重试')
+    message.error('删除项目失败，请稍后重试')
   }
 }
 
@@ -1587,279 +1506,80 @@ onMounted(async () => {
   color: #5D5A6D;
 }
 
-/* 弹窗样式 - 马卡龙风格 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(93, 90, 109, 0.3);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
+/* ==================== 弹窗（n-modal）样式 ====================
+   注意：n-modal 被 teleport 到 body，scoped 的 :deep(.mc-modal) 无法命中，
+   .mc-modal 全部外观样式统一写在 src/style.css 中，此处只保留业务内部结构样式。 */
 
-.modal {
-  background: white;
-  border-radius: 20px;
-  width: 500px;
-  max-width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  border: 1px solid #F0E6E3;
-  overflow: hidden;
-}
+/* 弹窗内容不设独立 max-height/overflow：滚动统一由 .mc-modal .n-card-content
+   （style.css，弹窗总高超 88vh 时才滚动）承接，滚动条位于内容区右缘，
+   距文本/按钮约 24px，颜色沿用全局薄荷绿渐变。 */
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #F0E6E3;
-  background: linear-gradient(90deg, rgba(168, 230, 207, 0.1), rgba(255, 154, 139, 0.1));
-}
-
-.modal-header h4 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #5D5A6D;
-}
-
-.close-btn {
-  background: rgba(255, 154, 139, 0.1);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 20px;
-  color: #FF9A8B;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 154, 139, 0.2);
-  transform: rotate(90deg);
-}
-
-.modal-body {
-  padding: 24px;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #5D5A6D;
-  font-size: 13px;
-}
-
-.form-control {
-  width: 100%;
-  padding: 12px 14px;
-  border: 2px solid #F0E6E3;
-  border-radius: 12px;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  background: white;
-  color: #5D5A6D;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #A8E6CF;
-  box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.2);
-}
-
-.modal-footer {
+.mc-modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid #F0E6E3;
-  background: linear-gradient(90deg, rgba(168, 230, 207, 0.05), rgba(255, 154, 139, 0.05));
+  margin-top: 16px;
 }
 
-/* 查看项目更新记录模态框样式 */
-.view-progress-modal {
-  width: 80%;
-  max-width: 900px;
+/* label 容器撑满整行，使「最新更新 / 重要更新」两端对齐生效 */
+.progress-form :deep(.n-form-item-label) {
+  display: block;
+  width: 100%;
 }
 
-.view-progress-body {
-  max-height: 60vh;
-  overflow-y: auto;
+.progress-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
 }
 
-/* 项目更新记录样式 - 马卡龙风格 */
-.progress-item {
-  margin-bottom: 12px;
-  padding: 16px 20px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(168, 230, 207, 0.08), rgba(126, 200, 227, 0.05));
-  border: 1px solid #F0E6E3;
-  transition: all 0.3s ease;
-}
-
-.progress-item:hover {
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-}
-
-/* 重要更新高亮显示 */
-.important-progress {
-  background: linear-gradient(135deg, rgba(255, 154, 139, 0.15), rgba(255, 183, 178, 0.1));
-  border-left: 4px solid #FF9A8B;
-}
-
-.important-progress .progress-content {
-  color: #D35D6E;
-}
-
-.progress-content {
-  font-size: 14px;
-  line-height: 1.5;
-  color: #5D5A6D;
-}
-
-.progress-meta {
+.progress-history-title {
+  margin: 20px 0 12px;
+  font-size: 15px;
   font-weight: 600;
-  color: #8B8899;
-  font-size: 12px;
-}
-
-.important-progress .progress-meta {
-  color: #FF9A8B;
-  font-weight: 700;
-}
-
-.progress-text {
   color: #5D5A6D;
-  margin-left: 4px;
 }
 
-.important-progress .progress-text {
+.progress-timeline {
+  padding-left: 2px;
+}
+
+.important-progress-text {
   color: #D35D6E;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.no-progress {
-  text-align: center;
-  color: #8B8899;
-  padding: 40px 20px;
-  font-style: italic;
+/* 表单栅格：n-form-item 自适应两列 */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
 }
 
-/* 表单样式 */
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 -10px;
+.form-grid :deep(.n-form-item) {
+  min-width: 0;
 }
 
-.form-group {
-  margin-bottom: 16px;
-  padding: 0 10px;
-  flex: 1;
-  min-width: 200px;
+.form-grid .field-full,
+.form-grid :deep(.field-full) {
+  grid-column: 1 / -1;
 }
 
-.form-group.col-md-6 {
-  flex: 0 0 50%;
-  max-width: 50%;
+.form-grid :deep(.n-input),
+.form-grid :deep(.n-date-picker),
+.form-grid :deep(.n-select) {
+  width: 100%;
 }
 
-.form-group.col-md-12 {
-  flex: 0 0 100%;
-  max-width: 100%;
+.progress-actions {
+  margin-top: 4px;
 }
 
-.form-group.col-md-4 {
-  flex: 0 0 33.33%;
-  max-width: 33.33%;
-}
-
-.form-check {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.form-check-input {
-  margin-right: 8px;
-  accent-color: #A8E6CF;
-}
-
-/* 带勾选框的表单组 */
-.with-checkbox {
-  position: relative;
-}
-
-.checkbox-right {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.checkbox-right .form-check-label {
-  font-size: 13px;
-  color: #8B8899;
-}
-
-.mb-4 {
-  margin-bottom: 20px;
-}
-
-.mt-4 {
-  margin-top: 20px;
-}
-
-.mb-6 {
-  margin-bottom: 28px;
-}
-
-/* 按钮样式 - 使用全局马卡龙样式 */
-.btn-sm {
-  padding: 8px 20px;
-  font-size: 13px;
-  border-radius: 10px;
-}
-
-/* 删除按钮 */
-.btn-danger {
-  background: linear-gradient(135deg, #FF8A80, #F76D6D);
-  color: white;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(255, 138, 128, 0.3);
-  transition: all 0.2s ease;
-}
-.btn-danger:hover {
-  background: linear-gradient(135deg, #F76D6D, #F2545B);
-  box-shadow: 0 4px 12px rgba(255, 138, 128, 0.4);
-  transform: translateY(-1px);
-}
-
-/* select 下拉框美化 */
-select.form-control {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235D5A6D' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+/* 按钮/头部区域的 n-button 在移动端等宽平分 */
+.header-buttons :deep(.n-button) {
+  min-width: 108px;
 }
 
 /* ==================== 移动端适配 ==================== */
@@ -1878,10 +1598,9 @@ select.form-control {
     width: 100%;
   }
 
-  .header-buttons .btn {
+  .header-buttons :deep(.n-button) {
     flex: 1;
-    padding: 10px 6px;
-    font-size: 13px;
+    min-width: 0;
   }
 
   .project-list {
@@ -1898,92 +1617,14 @@ select.form-control {
     margin: 16px 0 12px 0;
   }
 
-  .project-card-header {
-    padding: 14px 16px;
+  /* 移动端抽屉外观（.mc-modal 相关规则见 src/style.css 全局段） */
+  .mc-modal-footer {
+    margin-top: 0;
   }
 
-  .project-card-body {
-    padding: 16px;
-  }
-
-  .project-buttons {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .project-buttons .btn-sm {
-    flex: 1 1 auto;
-    padding: 8px 10px;
-  }
-
-  .project-card-header {
-    gap: 8px;
-  }
-
-  .project-name {
-    max-width: 100%;
-    white-space: normal;
-  }
-
-  .update-content {
-    -webkit-line-clamp: 3;
-    max-height: 4.5em;
-  }
-
-  /* 弹窗在手机上改为底部抽屉样式，便于单手操作 */
-  .modal-overlay {
-    padding: 0;
-    align-items: flex-end;
-  }
-
-  .modal {
-    width: 100%;
-    max-width: 100%;
-    max-height: 92vh;
-    border-radius: 20px 20px 0 0;
-    overflow-y: auto;
-  }
-
-  .view-progress-modal {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .view-progress-body {
-    max-height: none;
-  }
-
-  .modal-body {
-    padding: 16px;
-  }
-
-  .modal-header {
-    padding: 14px 16px;
-  }
-
-  .modal-footer {
-    padding: 14px 16px;
-  }
-
-  .form-row {
-    margin: 0 -6px;
-  }
-
-  .form-group {
-    min-width: 0;
-    padding: 0 6px;
-  }
-
-  .form-group.col-md-6,
-  .form-group.col-md-4 {
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-
-  .checkbox-right {
-    position: static;
-    justify-content: flex-end;
-    margin-bottom: 8px;
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }
 </style>

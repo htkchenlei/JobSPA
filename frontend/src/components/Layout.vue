@@ -106,24 +106,32 @@
     <main class="main-content">
       <header class="header">
         <div class="header-left">
-          <button class="toggle-sidebar" @click="toggleSidebar">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <n-button
+            class="toggle-sidebar"
+            quaternary
+            circle
+            aria-label="切换侧边栏"
+            @click="toggleSidebar"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4 6H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               <path d="M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               <path d="M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
-          </button>
+          </n-button>
           <h2>{{ currentRouteName }}</h2>
         </div>
         <div class="header-right">
-          <button class="btn btn-secondary" @click="logout">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <n-button class="mc-btn-lavender" size="small" @click="logout">
+            <template #icon>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </template>
             <span>登出</span>
-          </button>
+          </n-button>
         </div>
       </header>
       <div class="content">
@@ -136,6 +144,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { NButton } from 'naive-ui'
 
 const route = useRoute()
 const router = useRouter()
@@ -387,26 +396,20 @@ const logout = () => {
   gap: 16px;
 }
 
-.toggle-sidebar {
+/* 折叠按钮：薄荷绿描边的 quaternary 图标按钮 */
+.toggle-sidebar.n-button {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #A8E6CF 0%, #88D8B0 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  transition: all 0.3s ease;
-}
-
-.toggle-sidebar:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(168, 230, 207, 0.4);
-}
-
-.toggle-sidebar svg {
-  width: 20px;
-  height: 20px;
+  border-radius: var(--radius-md);
+  color: var(--macaron-mint-dark);
+  --n-border-color: #CFEDE1;
+  --n-color-hover: rgba(168, 230, 207, 0.18);
+  --n-color-pressed: rgba(168, 230, 207, 0.28);
+  --n-border-color-hover: var(--macaron-mint);
+  --n-border-color-pressed: var(--macaron-mint-dark);
+  --n-text-color-hover: #5CAE90;
+  --n-text-color-pressed: #4E9C81;
+  transition: all var(--dur-fast) var(--ease);
 }
 
 .header h2 {
@@ -502,18 +505,15 @@ const logout = () => {
     max-width: 40vw;
   }
 
-  .toggle-sidebar {
+  .toggle-sidebar.n-button {
     width: 38px;
     height: 38px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #5D5A6D;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     flex-shrink: 0;
   }
 
-  .header-right .btn {
-    padding: 8px 10px;
+  .header-right .n-button {
     font-size: 12px;
+    padding: 0 10px;
   }
 
   .content {
