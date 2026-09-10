@@ -44,7 +44,7 @@
 ### 🌐 对外公开 API
 - 无需认证的公共接口
 - 支持按周/月/自定义范围查询项目更新
-- 在线 API 文档页面 (`/api`)
+- 在线 API 文档页面 (`/apis`，与后端 `/api/*` 接口前缀分离)
 
 ## 🛠 技术栈
 
@@ -53,6 +53,7 @@
 - **TypeScript** - 类型安全
 - **Vite** - 快速构建工具
 - **Vue Router** - 路由管理
+- **Naive UI** - 组件库（马卡龙主题定制）
 - **Chart.js** - 图表可视化
 - **ECharts** - 高级图表
 
@@ -90,82 +91,130 @@ JobSPA/
 └── README.md
 ```
 
-## 🚀 快速开始
+## 📦 部署步骤（NAS / 服务器）
 
-### 方式一：Docker 部署（推荐）
+### 前置要求
 
-#### 1. 克隆项目
+- NAS / 服务器已安装 Docker 与 Docker Compose（SSH 执行 `docker compose version` 能正常输出）
+- 本地电脑已安装 Node.js ≥ 18 与 npm（用于构建前端产物，NAS 上不需要 Node）
+- 镜像采用「两层」设计：
+  - `jobspa-base:latest`：基础镜像（Python 3.11 + 全部依赖），**只需构建一次，日常更新复用**
+  - `jobspa:latest`：应用镜像（COPY 后端源码 + 前端 dist），业务更新只重建这一层，秒级完成
+
+### 首次部署
+
+#### 第 1 步：本地构建前端（你的电脑上）
+
 ```bash
-git clone https://github.com/htkchenlei/JobSPA.git
-cd JobSPA
+cd frontend
+npm install    # 首次或依赖变更后执行
+npm run build  # 产物输出到 frontend/dist/
 ```
 
-#### 2. 创建环境变量文件
+> NAS 不装 npm 依赖，页面全靠这份 `dist` 产物；构建报错请先解决再继续。
+
+#### 第 2 步：上传项目到 NAS
+
+用 File Station / SFTP 把**整个项目目录**上传到 NAS，例如 `/volume1/docker/JobSPA`（下文以此路径为例，以实际为准）。
+`.gitignore` 已排除的内容（`node_modules`、`.env`、`data/*.db`、`frontend/dist` 以外的构建产物等）无需上传。
+
+#### 第 3 步：准备环境变量与数据目录（SSH 到 NAS）
+
 ```bash
-cp .env.example .env
-# 编辑 .env 文件，修改 SECRET_KEY 等配置
+cd /volume1/docker/JobSPA
+cp .env.example .env      # 编辑 .env，务必修改 SECRET_KEY；需要 AI 日志则填 DEEPSEEK_API_KEY
+mkdir -p data uploads     # 数据库与上传目录（compose 挂载点，数据库将持久化于此）
 ```
 
-#### 3. 启动服务
-```bash
-# 构建并启动
-docker-compose up -d --build
+#### 第 4 步：构建基础镜像（仅首次）
 
-# 查看日志
-docker-compose logs -f
+```bash
+docker build -f Dockerfile.base -t jobspa-base:latest .
 ```
 
-#### 4. 访问应用
-打开浏览器访问 `http://localhost:15667`
+#### 第 5 步：启动并验收
 
-#### 5. 停止服务
 ```bash
-docker-compose down
+docker compose up -d --build
+docker compose logs -f    # 看到 gunicorn 启动信息即成功，Ctrl+C 退出日志
 ```
 
-#### 6. 数据库与运行时缓存说明
+浏览器访问 `http://NAS的IP:15667`，默认账户 `admin / 123456`，**登录后请立即修改密码**。
 
-- 容器**启动时会先自动执行 `init_db.py`（幂等）再拉起 gunicorn**：即使挂载的 `./data` 目录是空库，也会自动建表并创建默认账号 `admin/123456`，避免出现 `no such table: users`。
-- 后端会在数据目录自动生成 `progress_days_cache.json`（工作日志日历缓存），**无需手工创建/上传**；该文件请勿提交到 Git。
-- **工作日志规则**：只有用户在页面手动点击「生成今日日志」并保存才写入 `work_log`；不会自动生成，也不会把项目进展自动补齐成工作日志。日历的颜色标记由手动录入的项目进展（`project_progress` → `month-days` 缓存）驱动。
-- 历史版本曾把“系统补齐”占位日志（`created_by_ai='系统补齐'`）写入 `work_log`，新代码不再生成。若旧库仍有此类记录且想清理（不影响手动 AI 日志与日历颜色），可用一次性 SQL：
-  ```bash
-  docker compose exec jobspa python -c "import sqlite3; c=sqlite3.connect('/app/data/projectmanagement.db'); print('deleted', c.execute(\"DELETE FROM work_log WHERE created_by_ai='系统补齐'\").rowcount); c.commit()"
-  ```
+> **首次启动说明**
+> - 容器启动时先自动执行 `init_db.py`（幂等）再拉起 gunicorn：即使 `./data` 是空目录也会自动建表并创建默认账号，避免 `no such table: users`
+> - 后端会在数据目录自动生成日历缓存 `progress_days_cache.json`，无需手工创建，也**不要**提交到 Git
+> - 历史版本曾写入的「系统补齐」占位日志（`created_by_ai='系统补齐'`）如需清理（不影响手动 AI 日志与日历颜色），可执行一次性 SQL：
+>   ```bash
+>   docker compose exec jobspa python -c "import sqlite3; c=sqlite3.connect('/app/data/projectmanagement.db'); print('deleted', c.execute(\"DELETE FROM work_log WHERE created_by_ai='系统补齐'\").rowcount); c.commit()"
+>   ```
 
-#### 7. 从已有部署做增量更新（推荐）
+### 日常更新（增量部署，推荐）
 
-本地仓库 `main` 有新提交时，**不要整包上传/重新 Clone**，只把镜像相关目录里变化的部分覆盖到 NAS 的 `JobSPA/` 项目目录：
+本地仓库有新提交时，**不要整包重新上传/重新 Clone**，只覆盖变化的部分：
 
-1. 在本地执行前端构建（产物会放入 `frontend/dist`）：
+1. 本地重新构建前端（本次有前端改动时）：
+
    ```bash
    cd frontend && npm run build
    ```
-2. 覆盖以下内容到 NAS 项目目录（对应相对路径）：
+
+2. 覆盖上传到 NAS 项目目录（按对应相对路径）：
    - `frontend/dist/`（整个目录，Dockerfile 用 `COPY frontend/dist` 提供页面）
-   - `backend/` 下本次变更的 `.py` 源码（如 `app/routes/*.py`、`app/models/*.py`、`init_db.py`、新增脚本等）
-   - 若改动了启动方式：`docker-compose.yml`
-   > 新增的 `.py` 文件必须一并上传，否则容器启动时会 `ModuleNotFoundError`。
-3. 数据库说明：
-   - 新装/当前版本库（空库会由 `init_db.py` 自动建表）`projects.stage` 直接使用 5 档（1~5），**无需任何迁移**；
-   - 仅当你从“1-13 档”旧版本升级且卷内仍是旧档数据时，才需要一次性把 1-2→1、3-5→2、6-8→3、9-11→4、12-13→5。历史仓库提交里附过 `backend/migrate_stage_5.py`（已从主干移除，可从 Git 历史取回）；建议先 `cp data/projectmanagement.db data/projectmanagement.db.bak`。
-4. 重建并启动应用镜像（业务代码变更通常只需重建应用层，基础镜像 `jobspa-base` 已构建过一次即可复用）：
+   - `backend/` 下本次变更的 `.py` 源码（**新增的 .py 文件必须一并上传**，否则容器启动报 `ModuleNotFoundError`）
+   - `docker-compose.yml`（仅启动方式/环境变量变化时）
+
+3. 重建应用镜像并启动：
+
    ```bash
+   cd /volume1/docker/JobSPA
    docker compose up -d --build
    docker compose logs -f
    ```
-   > 若本机从未构建过 `jobspa-base`（报 `pulling ... jobspa-base ... 403`），先执行：
-   > ```bash
-   > docker build -f Dockerfile.base -t jobspa-base:latest .
-   > ```
 
-### 方式二：本地开发
+   > 若报 `jobspa-base ... not found / 403`，说明这台机器没构建过基础镜像，回到[首次部署第 4 步](#第-4-步构建基础镜像仅首次)补一次即可。
+
+**数据安全**：`./data`、`./uploads` 是宿主机挂载卷，不在镜像内，重建容器**不影响数据**。更新前可给旧镜像打备份 tag，出问题秒回滚：
+
+```bash
+docker tag jobspa:latest jobspa:backup-$(date +%m%d)
+# 回滚：docker tag jobspa:backup-0910 jobspa:latest && docker compose up -d
+```
+
+**数据库说明**：新装库 `projects.stage` 直接使用 5 档，无需迁移；仅当从「1-13 档」旧版本升级时才需要一次性归一化（1-2→1、3-5→2、6-8→3、9-11→4、12-13→5，迁移脚本可从 Git 历史取回 `backend/migrate_stage_5.py`），操作前先 `cp data/projectmanagement.db data/projectmanagement.db.bak`。
+
+### 常用运维命令
+
+```bash
+docker compose logs -f           # 实时日志
+docker compose restart           # 重启容器
+docker compose down              # 停止并移除容器（数据保留在宿主机 data/uploads 目录）
+docker compose up -d --build     # 代码更新后重建并启动
+```
+
+数据库为 SQLite 单文件（`data/projectmanagement.db`），直接拷贝即备份：
+
+```bash
+cp data/projectmanagement.db data/projectmanagement.db.bak.$(date +%m%d)
+```
+
+### 端口修改
+
+默认端口 `15667`，在 `docker-compose.yml` 中修改冒号左侧：
+
+```yaml
+ports:
+  - "你的端口:5000"
+```
+
+## 💻 本地开发
 
 #### 前端
 ```bash
 cd frontend
-pnpm install
-pnpm dev
+npm install
+npm run dev     # 开发模式（接口代理到本地后端 5000 端口）
+npm run build   # 构建产物到 dist/
 ```
 
 #### 后端
@@ -205,48 +254,14 @@ DATABASE_URL=mysql+pymysql://user:password@localhost:3306/jobspa
 
 ### NAS Docker 部署
 
-#### Synology NAS
-
-1. **通过 SSH 登录 NAS**
-```bash
-ssh admin@your-nas-ip
-```
-
-2. **创建项目目录**
-```bash
-mkdir -p /volume1/docker/JobSPA
-cd /volume1/docker/JobSPA
-```
-
-3. **上传项目文件**（使用 Git 或 SFTP）
-
-4. **修改 docker-compose.yml 中的卷挂载路径**
-```yaml
-volumes:
-  - ./data:/app/data
-  - ./uploads:/app/uploads
-```
-
-5. **启动服务**
-```bash
-docker-compose up -d
-```
-
-#### 端口说明
-
-默认端口：`15667`，可在 `docker-compose.yml` 中修改：
-
-```yaml
-ports:
-  - "你的端口:5000"
-```
+完整部署步骤（含 Synology NAS）见上文 [📦 部署步骤（NAS / 服务器）](#-部署步骤nas服务器)。
 
 ## 👤 默认账户
 
 系统默认管理员账户：
 
 - **用户名**: `admin`
-- **密码**: `admin`
+- **密码**: `123456`
 
 其他用户（如 `Marco`、`Chenlei`）为普通账户，无删除项目权限。
 
@@ -277,7 +292,7 @@ ports:
 | `/api/public/monthly-updates` | GET | 获取当月项目更新列表（本月1号~当天） |
 | `/api/public/range-updates` | GET | 获取指定日期范围的项目更新（需传 `start_date` 和 `end_date`） |
 
-详细文档请访问：`http://your-domain/api`
+详细文档请访问：`http://your-domain/apis`
 
 ### API 文档
 
@@ -311,6 +326,11 @@ python init_db.py  # 初始化数据库
 5. 提交 Pull Request
 
 ## 🆕 更新记录
+
+### 2026-09-10
+
+- **前端 UI 马卡龙风格全面改造，接入 Naive UI**：全站页面迁移至 `n-card / n-modal / n-form / n-select / n-tag / n-timeline / n-popconfirm` 等组件；替换 23 处原生 `alert/confirm` 为统一风格弹窗；新增主题配置 `theme/naiveTheme.ts`、阶段色板 `constants/stageColors.ts`、统一反馈 `utils/feedback.ts` 与 `ProjectCard` 组件；保留品牌五色与移动端抽屉适配。
+- **API 文档页路由 `/api` → `/apis`**：消除与后端 `/api/*` 接口前缀的撞名（此前开发模式被 Vite 代理截胡、生产环境命中后端路由，文档页无法直接打开）；Vite 代理规则同步收紧为 `/api/` 前缀。
 
 ### 2026-09-09
 
